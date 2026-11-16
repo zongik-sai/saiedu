@@ -46,9 +46,23 @@ export interface WrongEntry {
   clearedAt?: string;
 }
 
+/** 실력점검(자기 점검) 한 번: 제출 시각과 맞힌 수 */
+export interface SelfCheckAttempt { at: string; score: number }
+
+/**
+ * 단원 실력점검 기록(기초 다듬기처럼 과목에 selfCheck가 있을 때만). 학생 화면에는 최고점·누적 합계만 보인다.
+ * best: 최고 점수, sum: 누적 합계 점수, n: 제출 횟수, hist: 회차별 기록(최근 SELF_CHECK_KEEP개, 시각순 — 선생님 화면용)
+ */
+export interface SelfCheckRecord { best: number; sum: number; n: number; hist: SelfCheckAttempt[] }
+
 export interface CgState {
   v: 1;
   units: Partial<Record<CgUnitId, UnitRecord>>;
+  /** 단원 실력점검 기록(selfCheck 과목만, 비어 있으면 필드 없음 — 다른 과목 기록 JSON은 예전 그대로) */
+  checks?: Partial<Record<CgUnitId, SelfCheckRecord>>;
+  /** 예전 과목 기록을 옮겨 왔는지(한 번만, 기초 다듬기: 2진법 이해·IP 이해)와 처음 옮긴 시각 */
+  importedLegacy?: true;
+  importedLegacyAt?: string;
   mock: MockRecord[];
   wrong: Record<string, WrongEntry>;
   /** 개념 맞추기를 마친 이론 카드(카드 ID → 처음 마친 시각) */
@@ -83,7 +97,16 @@ export interface CourseShape {
   unitIds: readonly CgUnitId[];
   totalSteps: number;
   pass?: CoursePass;
+  /** 5단계가 size문항 실력점검(자기 점검)인 과목(기초 다듬기). 없으면 예전처럼 통과 기준이 있는 실력점검 */
+  selfCheck?: { size: number };
 }
+
+/** 실력점검 회차 기록은 단원마다 최근 이만큼만 둔다(횟수·합계는 따로 셈) */
+export const SELF_CHECK_KEEP = 50;
+/** 저장된 시각 형식(toISOString) */
+const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
+export const isIsoTime = (x: unknown): x is string => typeof x === 'string' && ISO_RE.test(x) && Number.isFinite(Date.parse(x));
+const isCount = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0;
 
 /** 과목의 모의고사 크기(생략하면 컴퓨터 일반 50문항·30문항 합격·50분) */
 export const mockSizeOf = (shape?: CourseShape): MockSize => shape?.pass?.mock ?? CG_PASS.mock;
@@ -148,7 +171,79 @@ export function normalizeCgState(raw: unknown, shape: CourseShape = CG_SHAPE): C
     }
   }
   if (typeof r.upd === 'string') s.upd = r.upd;
+  // 실력점검 기록은 selfCheck 과목만(다른 과목은 버림: 예전 그대로)
+  if (shape.selfCheck && r.checks && typeof r.checks === 'object') {
+    const checks: NonNullable<CgState['checks']> = {};
+    for (const u of shape.unitIds) {
+      if (!Object.hasOwn(r.checks, u)) continue;
+      const c = normalizeCheck((r.checks as Record<string, unknown>)[u], shape.selfCheck.size);
+      if (c) checks[u] = c;
+    }
+    if (Object.keys(checks).length) s.checks = checks;
+  }
+  if (r.importedLegacy === true) {
+    s.importedLegacy = true;
+    if (isIsoTime(r.importedLegacyAt)) s.importedLegacyAt = r.importedLegacyAt;
+  }
   return s;
+}
+
+const MAX_ATTEMPTS = 100_000;
+const byTime = (a: SelfCheckAttempt, b: SelfCheckAttempt) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0);
+
+/** 회차 기록 정리: 같은 시각은 하나(점수가 큰 쪽), 시각순, 최근 SELF_CHECK_KEEP개 */
+function tidyHist(list: SelfCheckAttempt[]): SelfCheckAttempt[] {
+  const byAt = new Map<string, number>();
+  for (const h of list) byAt.set(h.at, Math.max(byAt.get(h.at) ?? -1, h.score));
+  return [...byAt.entries()].map(([at, score]) => ({ at, score })).sort(byTime).slice(-SELF_CHECK_KEEP);
+}
+const histSum = (h: SelfCheckAttempt[]) => h.reduce((a, x) => a + x.score, 0);
+
+/**
+ * 실력점검 기록 하나 읽기: 점수는 0~size 정수, 시각은 ISO 형식만. 서로 맞지 않는 값은 '줄지 않는 쪽'으로 맞춘다
+ * (횟수 ≥ 회차 기록 수, 합계 ≥ 회차 점수 합·최고점, 최고점 ≥ 회차 최고·평균, 합계 ≤ 횟수 × size). 한 번도 안 풀었으면 없음.
+ */
+function normalizeCheck(x: unknown, size: number): SelfCheckRecord | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  const raw: SelfCheckAttempt[] = [];
+  if (Array.isArray(o.hist)) for (const h of o.hist) {
+    if (!h || typeof h !== 'object') continue;
+    const { at, score } = h as { at?: unknown; score?: unknown };
+    if (isIsoTime(at) && isCount(score) && score <= size) raw.push({ at, score });
+  }
+  const hist = tidyHist(raw);
+  const n = Math.min(MAX_ATTEMPTS, Math.max(isCount(o.n) ? o.n : 0, hist.length));
+  if (n === 0) return null;
+  const best = Math.max(isCount(o.best) && o.best <= size ? o.best : 0, ...hist.map((h) => h.score));
+  const sum = Math.min(n * size, Math.max(isCount(o.sum) ? o.sum : 0, histSum(hist), best));
+  // 최고점은 평균보다 작을 수 없다(망가진 값만 해당): 줄이지 않고 최고점을 올려 맞춘다
+  return { best: Math.max(best, Math.ceil(sum / n)), sum, n, hist };
+}
+
+/**
+ * 두 기기의 실력점검 기록 병합: 최고점은 큰 쪽, 회차 기록은 시각으로 합집합(같은 시각은 하나), 횟수·합계는 큰 쪽(합친 회차 기록보다 작지 않게).
+ * 한계: 두 기기에서 서로 모르게(병합 전에) 푼 회차는 회차 기록에는 모두 남지만, 회차 기록이 SELF_CHECK_KEEP개를 넘은 뒤에는
+ * 횟수·합계가 실제보다 적게 셀 수 있다. 그래도 어느 쪽 값보다 줄어들지는 않는다.
+ */
+export function mergeSelfCheck(a: SelfCheckRecord | undefined, b: SelfCheckRecord | undefined): SelfCheckRecord | undefined {
+  if (!a || !b) return a ?? b;
+  const hist = tidyHist([...a.hist, ...b.hist]);
+  return { best: Math.max(a.best, b.best), sum: Math.max(a.sum, b.sum, histSum(hist)), n: Math.max(a.n, b.n, hist.length), hist };
+}
+
+/** 실력점검 기록을 넣는다(비었으면 필드를 없앤다: 다른 과목·빈 기록 JSON은 예전 그대로) */
+function withChecks(s: CgState, checks: NonNullable<CgState['checks']>): CgState {
+  const out = { ...s };
+  if (Object.keys(checks).length) out.checks = checks;
+  else delete out.checks;
+  return out;
+}
+function withoutCheck(s: CgState, u: CgUnitId): CgState {
+  if (!s.checks || !Object.hasOwn(s.checks, u)) return s;
+  const checks = { ...s.checks };
+  delete checks[u];
+  return withChecks(s, checks);
 }
 
 /**
@@ -233,7 +328,7 @@ export const lockCount = (s: CgState, u: CgUnitId) => s.locks[u]?.length ?? 0;
 
 const unitCardPrefix = (u: CgUnitId) => `${u}-t`;
 
-/** 단원의 진도·점수(단계 기록·카드)와 잠김 횟수를 지운다. 오답노트·모의고사·다른 단원은 그대로 */
+/** 단원의 진도·점수(단계 기록·카드·실력점검 기록)와 잠김 횟수를 지운다. 오답노트·모의고사·다른 단원은 그대로 */
 export function resetUnit(s: CgState, u: CgUnitId, now = new Date().toISOString()): CgState {
   const units = { ...s.units };
   delete units[u];
@@ -241,7 +336,7 @@ export function resetUnit(s: CgState, u: CgUnitId, now = new Date().toISOString(
   const locks = { ...s.locks };
   delete locks[u];
   const prev = s.resets[u];
-  return stamp({ ...s, units, cards, locks, resets: { ...s.resets, [u]: { at: after(now, prev?.at), n: (prev?.n ?? 0) + 1 } } }, now);
+  return stamp(withoutCheck({ ...s, units, cards, locks, resets: { ...s.resets, [u]: { at: after(now, prev?.at), n: (prev?.n ?? 0) + 1 } } }, u), now);
 }
 
 /** 잠김 1회 기록. 한도에 닿으면 그 단원을 초기화한다 */
@@ -261,7 +356,7 @@ function dropStaleUnits(x: CgState, latest: CgState['resets'], shape: CourseShap
       delete units[u];
       const locks = { ...out.locks };
       delete locks[u];
-      out = { ...out, units, locks, cards: Object.fromEntries(Object.entries(out.cards).filter(([k]) => !k.startsWith(unitCardPrefix(u)))) };
+      out = withoutCheck({ ...out, units, locks, cards: Object.fromEntries(Object.entries(out.cards).filter(([k]) => !k.startsWith(unitCardPrefix(u)))) }, u);
     }
   }
   return out;
@@ -303,6 +398,25 @@ export function recordScore(s: CgState, u: CgUnitId, lv: 2 | 3 | 5, score: numbe
   const rec = state.units[u]![`lv${lv}`]!;
   if (rec.passedAt === undefined) delete rec.passedAt;
   return { state, passed, firstPass };
+}
+
+/**
+ * 실력점검(자기 점검) 한 번 제출(selfCheck 과목의 5단계). 점수는 0~size로 맞추고, 최고점·누적 합계·횟수·회차 기록을 갱신한다.
+ * 통과 기준은 없다: 첫 제출로 5단계를 마친 것으로 기록한다(lv5.passedAt, 식물·통과 단계 수가 이 값을 쓴다).
+ */
+export function recordSelfCheck(s: CgState, u: CgUnitId, score: number, size: number, now = new Date().toISOString()): { state: CgState; record: SelfCheckRecord; gained: number; first: boolean; newBest: boolean } {
+  const sc = Math.max(0, Math.min(size, Math.round(Number.isFinite(score) ? score : 0)));
+  const prev = s.checks?.[u];
+  const at = after(now, prev?.hist.at(-1)?.at);
+  const record: SelfCheckRecord = {
+    best: Math.max(prev?.best ?? 0, sc),
+    sum: (prev?.sum ?? 0) + sc,
+    n: (prev?.n ?? 0) + 1,
+    hist: [...(prev?.hist ?? []), { at, score: sc }].slice(-SELF_CHECK_KEEP),
+  };
+  let state = stamp({ ...s, checks: { ...(s.checks ?? {}), [u]: record } }, now);
+  state = setLevel(state, u, 5, (r) => ({ passedAt: r.passedAt ?? at, lastAt: at }), now);
+  return { state, record, gained: sc, first: !prev, newBest: !!prev && sc > prev.best };
 }
 
 /** 문항 하나를 풀었을 때 오답노트 갱신: 틀리면 넣고, 오답노트에 있던 문항을 맞히면 뺀다 */
@@ -382,11 +496,22 @@ export function mergeCgStates(a0: CgState, b0: CgState, shape: CourseShape = CG_
   }
   const cards: CgState['cards'] = {};
   for (const k of new Set([...Object.keys(a.cards), ...Object.keys(b.cards)])) cards[k] = minIso(a.cards[k], b.cards[k])!;
-  return { v: 1, units, mock, wrong, cards, locks, resets, upd: maxIso(a.upd, b.upd) ?? '' };
+  const checks: NonNullable<CgState['checks']> = {};
+  for (const u of shape.unitIds) {
+    const c = mergeSelfCheck(a.checks?.[u], b.checks?.[u]);
+    if (c) checks[u] = c;
+  }
+  const out: CgState = withChecks({ v: 1, units, mock, wrong, cards, locks, resets, upd: maxIso(a.upd, b.upd) ?? '' }, checks);
+  if (a.importedLegacy || b.importedLegacy) {
+    out.importedLegacy = true;
+    const at = minIso(a.importedLegacyAt, b.importedLegacyAt);
+    if (at) out.importedLegacyAt = at;
+  }
+  return out;
 }
 
 /** 의미 있는 진행이 있는지(가져오기 안내용) */
-export const hasProgress = (s: CgState, shape: CourseShape = CG_SHAPE) => passedCount(s, shape) > 0 || s.mock.length > 0 || Object.keys(s.wrong).length > 0 || Object.keys(s.cards).length > 0 || Object.values(s.units).some((u) => u && Object.keys(u).length > 0);
+export const hasProgress = (s: CgState, shape: CourseShape = CG_SHAPE) => passedCount(s, shape) > 0 || s.mock.length > 0 || Object.keys(s.wrong).length > 0 || Object.keys(s.cards).length > 0 || Object.keys(s.checks ?? {}).length > 0 || Object.values(s.units).some((u) => u && Object.keys(u).length > 0);
 
 /** 모의고사 결과 집계 */
 export function scoreMock(

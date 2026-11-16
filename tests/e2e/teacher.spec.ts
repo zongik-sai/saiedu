@@ -1,6 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { loadEnv } from 'vite';
-import { addLock, addMock, emptyCgState, markDone, noteAnswer, recordScore } from '../../src/features/computer/model';
+import { addLock, addMock, emptyCgState, markDone, noteAnswer, recordScore, recordSelfCheck, type CgState } from '../../src/features/computer/model';
 
 /**
  * 선생님 화면(/teacher)·실시간 학습 위치·학생 표시를 가짜 Supabase로 검증한다(dev 프로젝트).
@@ -38,10 +39,12 @@ const iso = (agoSec: number) => new Date(Date.now() - agoSec * 1000).toISOString
 function liveRows() {
   const st = (o: Record<string, unknown>) => ({ v: 1, path: '/', unit: null, step: null, detail: null, fs: false, locks: null, sharing: false, ...o });
   return [
-    { user_id: 'u1', name: '가온', email: 'gaon@school.example', updated_at: iso(8), state: st({ subject: 'cg', path: '/computer/unit/U3/3', unit: 'U3', step: '3', label: '3단원 · 3단계 기초 객관식', detail: '문항 7/20', focus: 'learning', fs: true, locks: 1 }) },
-    { user_id: 'u2', name: '나래', email: 'nare@school.example', updated_at: iso(20), state: st({ subject: 'net', path: '/network/unit/U2/5', unit: 'U2', step: '5', label: '2단원 · 5단계 실력점검', detail: '문항 3/15', focus: 'locked', fs: false, locks: 3 }) },
-    { user_id: 'u3', name: '다온', email: 'daon@school.example', updated_at: iso(40), state: st({ subject: 'db', path: '/learn/U03/U03-A02', unit: 'U03', step: 'activity:U03-A02', label: '3단원 · 활동 2', detail: '활동 2/4', focus: 'idle' }) },
-    { user_id: 'u4', name: '라온', email: 'raon@school.example', updated_at: iso(300), state: st({ subject: 'ip', path: '/ip', label: '단원 목록', focus: 'menu' }) },
+    { user_id: 'u1', name: '가온', email: 'sai_209610101@seoulai.sen.hs.kr', updated_at: iso(8), state: st({ subject: 'cg', path: '/computer/unit/U3/3', unit: 'U3', step: '3', label: '3단원 · 3단계 기초 객관식', detail: '문항 7/20', focus: 'learning', fs: true, locks: 1 }) },
+    { user_id: 'u2', name: '나래', email: 'sai_209610102@seoulai.sen.hs.kr', updated_at: iso(20), state: st({ subject: 'net', path: '/network/unit/U2/5', unit: 'U2', step: '5', label: '2단원 · 5단계 실력점검', detail: '문항 3/15', focus: 'locked', fs: false, locks: 3 }) },
+    { user_id: 'u3', name: '다온', email: 'sai_209610103@seoulai.sen.hs.kr', updated_at: iso(40), state: st({ subject: 'db', path: '/learn/U03/U03-A02', unit: 'U03', step: 'activity:U03-A02', label: '3단원 · 활동 2', detail: '활동 2/4', focus: 'idle' }) },
+    { user_id: 'u4', name: '라온', email: 'sai_209610104@seoulai.sen.hs.kr', updated_at: iso(300), state: st({ subject: 'basic', path: '/basics/unit/U3/5', unit: 'U3', step: '5', label: '3단원 · 실력점검 문항 4/10', focus: 'learning', fs: true, locks: 0 }) },
+    // 선생님의 테스트 계정(학번 형식 아님): '학생 계정만'(기본 켬)이면 숨김
+    { user_id: 'u5', name: '김선생', email: 'teacher@school.example', updated_at: iso(3), state: st({ subject: 'cg', path: '/computer', label: '단원 목록', focus: 'menu' }) },
   ];
 }
 
@@ -56,15 +59,32 @@ function cgRows() {
   a = addLock(addLock(a, 'U2', T(5)).state, 'U2', T(5)).state;
   let b = markDone(emptyCgState(), 'U1', 1, T(2));
   b = noteAnswer(b, 'U1-b1', false, T(4));
+  const t = noteAnswer(emptyCgState(), 'U1-b1', false, T(5)); // 선생님 테스트 계정
   return [
-    { user_id: 'u1', name: '가온', email: 'gaon@school.example', state: a, updated_at: T(5) },
-    { user_id: 'u2', name: '나래', email: 'nare@school.example', state: b, updated_at: T(4) },
+    { user_id: 'u1', name: '가온', email: 'sai_209610101@seoulai.sen.hs.kr', state: a, updated_at: T(5) },
+    { user_id: 'u2', name: '나래', email: 'sai_209610102@seoulai.sen.hs.kr', state: b, updated_at: T(4) },
+    { user_id: 'u5', name: '김선생', email: 'teacher@school.example', state: t, updated_at: T(5) },
+  ];
+}
+
+/** 기초 다듬기: 단원 실력점검(10문항) 회차 기록 */
+function basicRows() {
+  const T = (n: number) => `2026-11-0${n}T09:00:00.000Z`;
+  const run = (s: CgState, u: 'U1' | 'U2', scores: [number, number][]) => scores.reduce((x, [sc, d]) => recordSelfCheck(x, u, sc, 10, T(d)).state, s);
+  const a = run(run(emptyCgState(), 'U1', [[6, 1], [9, 3], [4, 5]]), 'U2', [[7, 4]]);
+  const b = run(emptyCgState(), 'U1', [[8, 2]]);
+  const t = run(emptyCgState(), 'U1', [[10, 2]]); // 선생님 테스트 계정
+  return [
+    { user_id: 'u1', name: '가온', email: 'sai_209610101@seoulai.sen.hs.kr', state: a, updated_at: T(5) },
+    { user_id: 'u2', name: '나래', email: 'sai_209610102@seoulai.sen.hs.kr', state: b, updated_at: T(2) },
+    { user_id: 'u5', name: '김선생', email: 'teacher@school.example', state: t, updated_at: T(2) },
   ];
 }
 
 const DB_ROWS = [
-  { user_id: 'u1', name: '가온', email: 'gaon@school.example', total_xp: 2450, activities: 20, checkpoints: 14, units: 5, finals: 0, last_activity: '2026-10-25T09:00:00Z' },
-  { user_id: 'u3', name: '다온', email: 'daon@school.example', total_xp: 600, activities: 6, checkpoints: 3, units: 1, finals: 0, last_activity: '2026-10-20T09:00:00Z' },
+  { user_id: 'u1', name: '가온', email: 'sai_209610101@seoulai.sen.hs.kr', total_xp: 2450, activities: 20, checkpoints: 14, units: 5, finals: 0, last_activity: '2026-10-25T09:00:00Z' },
+  { user_id: 'u3', name: '다온', email: 'sai_209610103@seoulai.sen.hs.kr', total_xp: 600, activities: 6, checkpoints: 3, units: 1, finals: 0, last_activity: '2026-10-20T09:00:00Z' },
+  { user_id: 'u5', name: '김선생', email: 'teacher@school.example', total_xp: 9900, activities: 48, checkpoints: 36, units: 12, finals: 12, last_activity: '2026-10-26T09:00:00Z' },
 ];
 
 type Handler = (body: Record<string, unknown> | null) => { status?: number; json: unknown };
@@ -161,7 +181,7 @@ test.describe('선생님 화면·실시간 학습 위치(가짜 로그인)', () 
     expect(calls.some((c) => ['class_live_status', 'cg_class_overview', 'course_class_overview', 'db_class_overview'].includes(c.fn))).toBe(false);
   });
 
-  test('선생님: 과목마다 선생님 화면 링크 → 그 과목 탭, 7과목 탭, 실시간 모니터링 격자', async ({ page }) => {
+  test('선생님: 과목마다 선생님 화면 링크 → 그 과목 탭, 6과목 탭, 실시간 모니터링 격자', async ({ page }) => {
     const calls = await fakeSupabase(page, TEACHER, true);
     await open(page, '/computer');
     const link = page.getByRole('link', { name: '선생님 화면' });
@@ -170,16 +190,36 @@ test.describe('선생님 화면·실시간 학습 위치(가짜 로그인)', () 
     await expect(page).toHaveURL(/#\/teacher\?s=cg$/);
     await expect(page.getByRole('heading', { name: '선생님 화면' })).toBeVisible();
     const tabs = page.getByRole('tab');
-    await expect(tabs).toHaveText(['실시간 모니터링', '데이터베이스', '컴퓨터 일반', '네트워크', '프로그래밍', 'Data', '2진법 이해', 'IP 이해']);
+    await expect(tabs).toHaveText(['실시간 모니터링', '데이터베이스', '컴퓨터 일반', '네트워크', '프로그래밍', 'Data', '기초 다듬기', '계정 관리']);
     await expect(page.getByRole('tab', { name: '컴퓨터 일반' })).toHaveAttribute('aria-selected', 'true');
 
     // 컴퓨터 일반: 더 자세히(단원별 통과율·많이 틀린 문항·학생 서랍)
     await expect(page.getByRole('heading', { name: '단원별 통과율' })).toBeVisible();
     await expect(page.getByRole('heading', { name: '많이 틀린 문항' })).toBeVisible();
     await expect(page.getByText('틀린 학생 2명(100%)')).toBeVisible();
+    // 학생 계정만(기본 켬): 선생님 테스트 계정은 반 통계·표에서 빠지고, 학번 열·학번순
+    const only = page.getByRole('checkbox', { name: '학생 계정만' });
+    await expect(only).toBeChecked();
+    await expect(page.getByText('학생 계정(학번 형식)이 아닌 1명은 통계·표·CSV에서 뺐어요.')).toBeVisible();
+    const cls = page.locator('table.cg-class');
+    await expect(cls.getByRole('columnheader', { name: /학번/ })).toBeVisible();
+    await expect(cls.locator('tbody tr')).toHaveCount(2);
+    await expect(cls.locator('tbody tr').first()).toContainText('10101');
+    await expect(cls.locator('tbody tr').first()).toContainText('2096 · 1학년 1반 1번');
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'CSV 저장' }).click()]);
+    const csvText = readFileSync((await dl.path())!, 'utf8');
+    expect(csvText.split('\r\n')[0]).toContain('이름,이메일,연도,학번,학년·반·번호,식물');
+    expect(csvText).toContain('가온,sai_209610101@seoulai.sen.hs.kr,2096,10101,1학년 1반 1번,');
+    expect(csvText).not.toContain('teacher@school.example');
+    await only.uncheck();
+    await expect(page.getByText('틀린 학생 3명(100%)')).toBeVisible();
+    await expect(cls.locator('tbody tr')).toHaveCount(3);
+    await only.check();
+    await expect(page.getByText('틀린 학생 2명(100%)')).toBeVisible();
     await page.getByRole('button', { name: '가온' }).click();
     const drawer = page.getByRole('dialog');
     await expect(drawer.getByRole('heading', { name: '가온' })).toBeVisible();
+    await expect(drawer).toContainText('학번 2096 · 10101 · 1학년 1반 1번');
     await expect(drawer.getByRole('heading', { name: '모의고사 (2회)' })).toBeVisible();
     await expect(drawer).toContainText('랜덤 모의고사 · 시간 종료');
     await expect(drawer).toContainText('27/30');
@@ -194,6 +234,16 @@ test.describe('선생님 화면·실시간 학습 위치(가짜 로그인)', () 
     // 상태순: 잠김 → 자리 비움 → … → 집중 학습 중 → 오프라인
     await expect(grid.locator('.t-live-name')).toHaveText(['나래', '다온', '가온', '라온']);
     const gaon = grid.getByRole('listitem').filter({ hasText: '가온' });
+    await expect(gaon).toContainText('학번 2096 · 10101 · 1학년 1반 1번');
+    // 학생 계정만(기본 켬): 선생님 테스트 계정은 숨김, 끄면 보임, 학번순 정렬
+    await expect(page.getByText('학생 계정(학번 형식)이 아닌 1명은 목록·상태별 수에서 뺐어요.')).toBeVisible();
+    await page.getByRole('checkbox', { name: '학생 계정만' }).uncheck();
+    await expect(grid.getByRole('listitem')).toHaveCount(5);
+    await page.getByLabel('정렬').selectOption('sid');
+    await expect(grid.locator('.t-live-name')).toHaveText(['가온', '나래', '다온', '라온', '김선생']);
+    await page.getByRole('checkbox', { name: '학생 계정만' }).check();
+    await page.getByLabel('정렬').selectOption('status');
+    await expect(grid.getByRole('listitem')).toHaveCount(4);
     await expect(gaon).toContainText('집중 학습 중');
     await expect(gaon).toContainText('3단원 · 3단계 기초 객관식');
     await expect(gaon).toContainText('문항 7/20');
@@ -203,9 +253,13 @@ test.describe('선생님 화면·실시간 학습 위치(가짜 로그인)', () 
     await expect(grid.getByRole('listitem').filter({ hasText: '다온' })).toContainText('자리 비움');
     const raon = grid.getByRole('listitem').filter({ hasText: '라온' });
     await expect(raon).toContainText('오프라인');
+    await expect(raon).toContainText('기초 다듬기');
+    await expect(raon).toContainText('3단원 · 실력점검 문항 4/10');
     await expect(raon.getByRole('button', { name: '화면 보기 요청' })).toBeDisabled();
     await expect(gaon.getByRole('button', { name: '화면 보기 요청' })).toBeEnabled();
     await page.getByLabel('과목').selectOption('net');
+    // 숨긴 수도 과목 필터를 따른다(선생님 테스트 계정은 컴퓨터 일반에 있음)
+    await expect(page.getByText('목록·상태별 수에 학생 계정(학번 형식)만 넣어요.')).toBeVisible();
     await expect(grid.getByRole('listitem')).toHaveCount(1);
     await expect(grid).toContainText('나래');
     // 5초마다 새로고침
@@ -216,6 +270,13 @@ test.describe('선생님 화면·실시간 학습 위치(가짜 로그인)', () 
     // 데이터베이스 탭
     await page.getByRole('tab', { name: '데이터베이스' }).click();
     await expect(page.getByRole('heading', { name: '완료한 단원 수 분포' })).toBeVisible();
+    // 학생 계정만: 선생님 테스트 계정(9,900XP)은 요약·표에서 빠짐, 학번순
+    await expect(page.getByText('학생 계정(학번 형식)이 아닌 1명은 통계·표·CSV에서 뺐어요.')).toBeVisible();
+    await expect(page.locator('.kpi').filter({ hasText: '12단원 모두 완료' }).locator('b')).toHaveText('0');
+    await expect(page.locator('table.data').last().locator('tbody tr th')).toHaveText([/가온/, /다온/]);
+    await page.getByRole('checkbox', { name: '학생 계정만' }).uncheck();
+    await expect(page.locator('.kpi').filter({ hasText: '12단원 모두 완료' }).locator('b')).toHaveText('1');
+    await page.getByRole('checkbox', { name: '학생 계정만' }).check();
     await page.getByRole('button', { name: '다온' }).click();
     await expect(page.getByRole('dialog')).toContainText('반 평균');
     await page.keyboard.press('Escape');
@@ -229,12 +290,126 @@ test.describe('선생님 화면·실시간 학습 위치(가짜 로그인)', () 
     await expect(page.getByRole('link', { name: '선생님 화면' })).toHaveAttribute('href', '#/teacher?s=db');
     await open(page, '/network');
     await expect(page.getByRole('link', { name: '선생님 화면' })).toHaveAttribute('href', '#/teacher?s=net');
-    await open(page, '/ip');
-    await expect(page.getByRole('link', { name: '선생님 화면' })).toHaveAttribute('href', '#/teacher?s=ip');
+    await open(page, '/basics');
+    await expect(page.getByRole('link', { name: '선생님 화면' })).toHaveAttribute('href', '#/teacher?s=basic');
+    // 예전 보충 학습 탭 주소는 기초 다듬기 탭으로
+    await open(page, '/teacher?s=ip');
+    await expect(page.getByRole('tab', { name: '기초 다듬기' })).toHaveAttribute('aria-selected', 'true');
     // 예전 '반 학습 현황' 주소는 선생님 화면의 그 과목 탭으로
     await open(page, '/programming/teacher');
     await expect(page).toHaveURL(/#\/teacher\?s=prog$/);
     await expect(page.getByRole('tab', { name: '프로그래밍' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('선생님: 기초 다듬기 탭 — 단원별 실력점검(푼 학생·평균 최고점·응시), 학생 서랍의 회차별 기록, CSV에 최고·누적·횟수', async ({ page }) => {
+    const calls = await fakeSupabase(page, TEACHER, true, { course_class_overview: (b) => ({ json: b?.p_course === 'basic' ? basicRows() : [] }) });
+    await open(page, '/teacher?s=basic');
+    await expect(page.getByRole('tab', { name: '기초 다듬기' })).toHaveAttribute('aria-selected', 'true');
+    await expect.poll(() => calls.find((c) => c.fn === 'course_class_overview')?.body).toEqual({ p_course: 'basic' });
+    // 학생 계정만(기본): 선생님 테스트 계정은 빠짐
+    await expect(page.locator('.kpi').filter({ hasText: '실력점검 응시(모든 단원 합계)' }).locator('b')).toHaveText('5');
+    const sc = page.locator('.panel', { has: page.getByRole('heading', { name: '실력점검(10문항)' }) });
+    await expect(sc.locator('tbody tr')).toHaveCount(10);
+    await expect(sc.locator('tbody tr').nth(0)).toContainText('2명');
+    await expect(sc.locator('tbody tr').nth(0)).toContainText('8.5/10');
+    await expect(sc.locator('tbody tr').nth(0)).toContainText('4회');
+    await expect(sc.locator('tbody tr').nth(1)).toContainText('1명');
+    await expect(sc.locator('tbody tr').nth(1)).toContainText('7.0/10');
+    await expect(sc.locator('tbody tr').nth(2)).toContainText('0명');
+    await expect(sc).toContainText('학생 화면에는 단원별 최고점과 누적 합계 점수만 보여요');
+    const cls = page.locator('table.cg-class');
+    await expect(cls.getByRole('columnheader', { name: /실력점검 누적/ })).toBeVisible();
+    await expect(cls.locator('tbody tr').filter({ hasText: '가온' })).toContainText('26점 · 4회');
+    await expect(cls.locator('tbody tr').filter({ hasText: '나래' })).toContainText('8점 · 1회');
+    // CSV: 단원마다 최고·누적·횟수
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'CSV 저장' }).click()]);
+    const csvText = readFileSync((await dl.path())!, 'utf8');
+    const [head, ...lines] = csvText.split('\r\n');
+    expect(head).toContain('U1 실력점검 최고(/10),U1 실력점검 누적,U1 실력점검 횟수,U2 실력점검 최고(/10)');
+    expect(head).toContain('U10 실력점검 횟수,모의 최고');
+    const gaon = lines.find((l) => l.startsWith('가온,'))!;
+    expect(gaon).toContain(',9,19,3,7,7,1,,,0,');
+    expect(csvText).not.toContain('teacher@school.example');
+    // 학생 서랍: 단원별 최고·누적·횟수·마지막 + 회차별 기록(최근 순)
+    await page.getByRole('button', { name: '가온' }).click();
+    const drawer = page.getByRole('dialog');
+    await expect(drawer.getByRole('heading', { name: '실력점검(10문항)' })).toBeVisible();
+    const u1 = drawer.locator('table.t-sc-detail tbody tr').first();
+    await expect(u1.locator('td')).toHaveText(['9/10', '19점', '3회', '4/10']);
+    await expect(drawer.locator('table.t-sc-detail tbody tr').nth(2).locator('td')).toHaveText(['-', '-', '0회', '-']);
+    await expect(drawer.getByRole('heading', { name: '회차별 기록 (4회)' })).toBeVisible();
+    const hist = drawer.locator('table.t-sc-hist tbody tr');
+    await expect(hist).toHaveCount(4);
+    await expect(hist.locator('td:nth-child(2)')).toHaveText(['U1', 'U2', 'U1', 'U1']);
+    await expect(hist.locator('td:nth-child(3)')).toHaveText(['4/10', '7/10', '9/10', '6/10']);
+    await drawer.getByRole('button', { name: '닫기' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
+  test('학생(로그인): 기초 다듬기를 처음 열면 서버의 예전 2진법 이해·IP 이해 기록을 옮겨 저장(연결이 안 되면 다음에 다시, 옮긴 뒤에는 한 번만)', async ({ page }) => {
+    const saves: Record<string, unknown>[] = [];
+    await fakeSupabase(page, STUDENT, false, {
+      save_course_progress: (b) => {
+        saves.push(b ?? {});
+        return { json: { status: 'ok', revision: saves.length } };
+      },
+    });
+    const at = '2026-10-28T09:00:00.000Z';
+    const old = (lv5: number, wrong: string) => ({ v: 1, upd: at, mock: [], locks: {}, resets: {}, cards: { 'U2-t3': at }, wrong: { [wrong]: { at, n: 2 } }, units: { U2: { lv1: { passedAt: at, lastAt: at }, lv5: { best: lv5, total: 8, passedAt: at, lastAt: at } } } });
+    const legacyGets: string[] = [];
+    let fail = true;
+    await page.route(`${SB_URL}/rest/v1/course_progress**`, async (route) => {
+      const url = route.request().url();
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+      if (!url.includes('course=in.')) return route.fulfill({ headers: CORS, json: [] }); // 기초 다듬기 행은 아직 없음
+      legacyGets.push(decodeURIComponent(url));
+      if (fail) return route.abort('failed'); // 처음 한 번은 연결 끊김
+      return route.fulfill({ headers: CORS, json: [{ course: 'bin', state: old(8, 'U2-a4'), revision: 3 }, { course: 'ip', state: old(6, 'U2-b1'), revision: 1 }] });
+    });
+    await open(page, '/basics');
+    await expect(page.locator('.cg-unit')).toHaveCount(10);
+    await expect.poll(() => legacyGets.length).toBe(1);
+    expect(legacyGets[0]).toMatch(/select=course,\s*state,\s*revision/);
+    expect(legacyGets[0]).toContain('course=in.(bin,ip)');
+    await expect(page.locator('.cg-unit').nth(1)).toContainText('실력점검 아직 안 풀었어요');
+    const stateKey = () => page.evaluate(() => Object.keys(localStorage).find((k) => k.endsWith(':basic:state') && !k.includes(':guest:')) ?? '');
+    const local = async () => JSON.parse((await page.evaluate((k) => localStorage.getItem(k), await stateKey())) ?? '{}');
+    expect(await local()).not.toHaveProperty('importedLegacy'); // 다음에 다시
+    // 다시 열면(연결됨) 옮겨 와서 서버에 저장
+    fail = false;
+    await page.reload();
+    await expect(page.getByRole('status').filter({ hasText: '예전에 공부한 기록을 기초 다듬기로 옮겨 왔어요' })).toBeVisible();
+    await expect(page.locator('.cg-unit').nth(1)).toContainText('실력점검 최고 10/10 · 누적 10점');
+    await expect(page.locator('.cg-unit').nth(7)).toContainText('실력점검 최고 8/10 · 누적 8점');
+    await expect.poll(() => saves.length, { timeout: 10000 }).toBeGreaterThan(0);
+    const body = saves.at(-1)!;
+    expect(body.p_course).toBe('basic');
+    expect(body.p_state).toMatchObject({ importedLegacy: true, checks: { U2: { best: 10, sum: 10, n: 1 }, U8: { best: 8, n: 1 } }, cards: { 'U2-t3': at, 'U8-t3': at } });
+    expect(Object.keys((body.p_state as { wrong: object }).wrong).sort()).toEqual(['U2-a4', 'U8-b1']);
+    expect(legacyGets).toHaveLength(2);
+    // 옮긴 뒤에는 다시 읽지 않는다
+    await page.reload();
+    await expect(page.locator('.cg-unit').nth(1)).toContainText('누적 10점');
+    await page.waitForTimeout(500);
+    expect(legacyGets).toHaveLength(2);
+    await expect(page.getByText('예전에 공부한 기록을')).toHaveCount(0);
+  });
+
+  test('학생 계정 형식이 하나도 없으면 학생 계정만을 끈 채로 보여 주고 계정 관리로 안내', async ({ page }) => {
+    const rows = cgRows().map((r, i) => ({ ...r, email: `student${i}@example.org` }));
+    await fakeSupabase(page, TEACHER, true, { course_class_overview: () => ({ json: rows }) });
+    await open(page, '/teacher?s=net');
+    const only = page.getByRole('checkbox', { name: '학생 계정만' });
+    await expect(only).not.toBeChecked();
+    await expect(page.getByText('모든 계정(선생님 테스트 계정 포함)을 넣었어요.')).toBeVisible();
+    await expect(page.locator('.t-only-none')).toHaveText('학생 계정 형식(연도+학번 9자리)으로 확인된 계정이 없어요. 계정 관리에서 확인해 주세요.');
+    await expect(page.locator('table.cg-class tbody tr')).toHaveCount(3);
+    // 직접 켜면 그 값을 따른다(모두 숨김)
+    await only.check();
+    await expect(page.locator('.kpi').first().locator('b')).toHaveText('0');
+    await page.locator('.t-only-none').getByRole('link', { name: '계정 관리' }).click();
+    await expect(page).toHaveURL(/#\/teacher\?s=accounts$/);
+    await expect(page.getByRole('tab', { name: '계정 관리' })).toHaveAttribute('aria-selected', 'true');
   });
 
   test('서버에 migration이 아직 없으면 분명하게 안내', async ({ page }) => {
@@ -245,7 +420,7 @@ test.describe('선생님 화면·실시간 학습 위치(가짜 로그인)', () 
     });
     await open(page, '/teacher');
     await expect(page.getByRole('alert')).toContainText('supabase/migrations/20261026010000_monitoring.sql');
-    await page.getByRole('tab', { name: '2진법 이해' }).click();
+    await page.getByRole('tab', { name: '기초 다듬기' }).click();
     await expect(page.getByRole('alert')).toContainText('20261026000000_courses.sql');
   });
 

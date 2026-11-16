@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { studentNoText } from '../auth/accountKind';
 import { useAuth } from '../auth/AuthContext';
 import { onBeforeSignOut } from '../auth/signOutHooks';
 import { rpcErrorText, type MonitorApi } from './api';
 import { agoText, CHIP_LABEL, CHIP_ORDER, SUBJECT_LIST, sortLive, subjectName, toLiveStudents, type LiveChip, type LiveRow, type LiveSort, type LiveStudent } from './liveState';
+import { OnlyStudentsToggle, useOnlyStudents } from './OnlyStudents';
 import { ViewerSession, type ViewerState } from './rtc';
 
 /**
@@ -83,7 +85,15 @@ export function LiveMonitor({ api }: { api: MonitorApi }) {
   }, []);
 
   const students = useMemo(() => toLiveStudents(rows ?? [], now), [rows, now]);
-  const shown = useMemo(() => sortLive(students.filter((s) => subject === 'all' || s.state.subject === subject), sort), [students, subject, sort]);
+  // 학생 계정만(지금 자료에 학생 계정 형식이 있으면 켬): 선생님 테스트 계정 등이 섞이지 않게
+  const hasStu = students.some((s) => s.sid);
+  const [onlyStu, setOnlyStu] = useOnlyStudents(hasStu);
+  const inSubject = (s: LiveStudent) => subject === 'all' || s.state.subject === subject;
+  const hidden = onlyStu ? students.filter((s) => !s.sid && inSubject(s)).length : 0;
+  const shown = useMemo(
+    () => sortLive(students.filter((s) => (!onlyStu || s.sid) && (subject === 'all' || s.state.subject === subject)), sort),
+    [students, subject, sort, onlyStu],
+  );
   const counts = useMemo(() => {
     const c = Object.fromEntries(CHIP_ORDER.map((k) => [k, 0])) as Record<LiveChip, number>;
     for (const s of shown) c[s.chip]++;
@@ -119,6 +129,7 @@ export function LiveMonitor({ api }: { api: MonitorApi }) {
           <select value={sort} onChange={(e) => setSort(e.target.value as LiveSort)}>
             <option value="status">상태순(잠김·자리 비움 먼저)</option>
             <option value="name">이름순</option>
+            <option value="sid">학번순</option>
             <option value="recent">최근 소식순</option>
           </select>
         </label>
@@ -130,6 +141,7 @@ export function LiveMonitor({ api }: { api: MonitorApi }) {
           </select>
         </label>
       </div>
+      {rows && <OnlyStudentsToggle on={onlyStu} set={setOnlyStu} hidden={hidden} none={students.length > 0 && !hasStu} scope="목록·상태별 수" />}
       {err && <p className="notice notice-warn" role="alert">불러오지 못했어요: {err}</p>}
       {!rows && !err ? <p role="status">불러오는 중…</p> : rows && (
         <>
@@ -137,7 +149,7 @@ export function LiveMonitor({ api }: { api: MonitorApi }) {
             {CHIP_ORDER.map((k) => <li key={k}><span className={`t-chip chip-${k}`}>{CHIP_LABEL[k]}</span> {counts[k]}</li>)}
           </ul>
           {shown.length === 0 ? (
-            <p className="notice">최근 {minutes}분 안에 공부한(로그인한) 학생이 없어요.</p>
+            <p className="notice">최근 {minutes}분 안에 공부한(로그인한) 학생이 없어요.{hidden > 0 && ` 학생 계정(학번 형식)이 아닌 ${hidden}명은 숨겼어요('학생 계정만'을 끄면 보여요).`}</p>
           ) : (
             <ul className="t-live-grid" aria-label="학생별 실시간 학습 상태">
               {shown.map((s) => (
@@ -146,6 +158,7 @@ export function LiveMonitor({ api }: { api: MonitorApi }) {
                     <b className="t-live-name" title={s.email}>{s.name}{s.id === me ? ' (나)' : ''}</b>
                     <span className={`t-chip chip-${s.chip}`}>{CHIP_LABEL[s.chip]}</span>
                   </div>
+                  {s.sid && <div className="small t-sid">학번 {s.sid.year} · {studentNoText(s.sid)}</div>}
                   <div className="small muted t-ellipsis">{s.email}</div>
                   <div className="t-live-where"><span className="badge badge-plain">{subjectName(s.state.subject) || '과목 밖'}</span> {s.state.label || '-'}</div>
                   <div className="small">{s.state.detail ?? ' '}</div>

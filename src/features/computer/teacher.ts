@@ -1,4 +1,5 @@
-import { activeWrongIds, bestRegularMock, CG_SHAPE, mockSizeOf, normalizeCgState, passedCount, plantStage, unitLevel, type CgState, type CourseShape } from './model';
+import { parsedText, studentId, type StudentId } from '../auth/accountKind';
+import { activeWrongIds, bestRegularMock, CG_SHAPE, mockSizeOf, normalizeCgState, passedCount, plantStage, unitLevel, type CgState, type CourseShape, type SelfCheckAttempt } from './model';
 import type { CgUnitId } from './types';
 
 /**
@@ -17,6 +18,8 @@ export interface CgStudent {
   id: string;
   name: string;
   email: string;
+  /** 학생 계정(학번 형식)이면 연도·학번(이메일에서 읽음, 저장하지 않음) */
+  sid: StudentId | null;
   state: CgState;
   plant: number;
   passed: number;
@@ -25,6 +28,9 @@ export interface CgStudent {
   mockPassed: boolean;
   wrong: number;
   lastAt: string;
+  /** 실력점검(selfCheck 과목) 모든 단원의 누적 합계 점수·응시 횟수(다른 과목은 0) */
+  checkSum: number;
+  checkN: number;
 }
 
 export function toStudents(rows: CgClassRow[], shape: CourseShape = CG_SHAPE): CgStudent[] {
@@ -33,9 +39,51 @@ export function toStudents(rows: CgClassRow[], shape: CourseShape = CG_SHAPE): C
     const levels = Object.fromEntries(shape.unitIds.map((u) => [u, unitLevel(s, u)])) as Record<CgUnitId, number>;
     const best = bestRegularMock(s, shape);
     return {
-      id: r.user_id, name: r.name || (r.email ?? '').split('@')[0] || '(이름 없음)', email: r.email ?? '', state: s,
+      id: r.user_id, name: r.name || (r.email ?? '').split('@')[0] || '(이름 없음)', email: r.email ?? '', sid: studentId(r.email), state: s,
       plant: plantStage(s, shape), passed: passedCount(s, shape), levels, mockBest: best, mockPassed: best >= mockSizeOf(shape).need,
       wrong: activeWrongIds(s).length, lastAt: r.updated_at,
+      checkSum: Object.values(s.checks ?? {}).reduce((a, c) => a + (c?.sum ?? 0), 0),
+      checkN: Object.values(s.checks ?? {}).reduce((a, c) => a + (c?.n ?? 0), 0),
+    };
+  });
+}
+
+/* ---------------- 실력점검(자기 점검, 기초 다듬기) ---------------- */
+
+/** 학생 한 명의 단원 실력점검(선생님 화면은 학생 화면과 달리 마지막 점수·회차 기록까지 모두 보인다) */
+export interface StudentSelfCheck {
+  unitId: CgUnitId;
+  best: number;
+  sum: number;
+  n: number;
+  /** 마지막 회차 점수·시각(회차 기록이 없으면 null) */
+  last: number | null;
+  lastAt: string | null;
+  /** 회차 기록(최근 순) */
+  hist: SelfCheckAttempt[];
+}
+
+export function studentSelfChecks(st: CgState, shape: CourseShape): StudentSelfCheck[] {
+  if (!shape.selfCheck) return [];
+  return shape.unitIds.map((u) => {
+    const c = st.checks?.[u];
+    const h = c?.hist ?? [];
+    return { unitId: u, best: c?.best ?? 0, sum: c?.sum ?? 0, n: c?.n ?? 0, last: h.at(-1)?.score ?? null, lastAt: h.at(-1)?.at ?? null, hist: [...h].reverse() };
+  });
+}
+
+/** 단원별 반 실력점검: 한 번 이상 푼 학생 수, 평균 최고점(푼 학생 기준), 응시 횟수 합계 */
+export interface UnitSelfCheckStat { unitId: CgUnitId; students: number; avgBest: number; attempts: number }
+
+export function selfCheckClassStats(students: CgStudent[], shape: CourseShape): UnitSelfCheckStat[] {
+  if (!shape.selfCheck) return [];
+  return shape.unitIds.map((u) => {
+    const recs = students.map((s) => s.state.checks?.[u]).filter((c) => !!c && c.n > 0);
+    return {
+      unitId: u,
+      students: recs.length,
+      avgBest: recs.length ? recs.reduce((a, c) => a + c!.best, 0) / recs.length : 0,
+      attempts: recs.reduce((a, c) => a + c!.n, 0),
     };
   });
 }
@@ -53,13 +101,17 @@ export function classSummary(students: CgStudent[], now = Date.now(), shape: Cou
   return { n, active7, avgPassed, mockPassed, unitAvg, topWrong };
 }
 
+/** CSV 학번 열(연도·학번·학년 반 번호): 학생 계정이 아니면 빈칸 */
+export const CSV_SID_HEADER = ['연도', '학번', '학년·반·번호'];
+export const csvSid = (sid: StudentId | null): string[] => (sid ? [String(sid.year), sid.no, parsedText(sid) ?? ''] : ['', '', '']);
+
 /** CSV(엑셀 한글 깨짐 방지 BOM 포함) */
 export function toCsv(header: string[], rows: (string | number)[][]): string {
   const esc = (v: string | number) => {
     const t = String(v);
     // 수식 주입 방지: = + - @ 탭 CR로 시작하면 앞에 작은따옴표
     const safe = /^[=+\-@\t\r]/.test(t) ? `'${t}` : t;
-    return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+    return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
   };
   return '﻿' + [header, ...rows].map((r) => r.map(esc).join(',')).join('\r\n');
 }
@@ -154,5 +206,8 @@ export function studentDetail(s: CgStudent, shape: CourseShape = CG_SHAPE) {
   const mocks = [...st.mock].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
   const active = activeWrongIds(st);
   const wrongTop = Object.entries(st.wrong).sort((a, b) => b[1].n - a[1].n || (a[1].at < b[1].at ? 1 : -1)).slice(0, 10).map(([id, w]) => ({ id, n: w.n, active: active.includes(id) }));
-  return { units, mocks, wrongActive: active.length, wrongTotal: Object.keys(st.wrong).length, wrongTop };
+  // 실력점검(selfCheck 과목만): 단원별 최고·누적·횟수·마지막 + 모든 단원 회차 기록(최근 순)
+  const checks = studentSelfChecks(st, shape);
+  const checkHist = checks.flatMap((c) => c.hist.map((h) => ({ unitId: c.unitId, ...h }))).sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+  return { units, mocks, wrongActive: active.length, wrongTotal: Object.keys(st.wrong).length, wrongTop, checks, checkHist };
 }
