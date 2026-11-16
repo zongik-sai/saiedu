@@ -45,7 +45,7 @@ export interface CgCard {
   tip?: string;
   /** 시험 대비 확장 카드 */
   ext: boolean;
-  /** 카드를 읽은 뒤 푸는 개념 맞추기(컴퓨터 일반은 card_match.json, 새 과목은 카드 원본의 match) */
+  /** 카드를 읽은 뒤 푸는 개념 맞추기(컴퓨터 일반은 content/cg/U<n>.json의 match, 새 과목은 카드 원본의 match) */
   match?: CgCardMatch;
   /** 코드 예시(새 과목, 선택) */
   code?: string;

@@ -27,7 +27,7 @@ export interface AdaptOptions {
   areas: readonly string[];
   /** 모르는 영역일 때 쓸 영역(기본: 첫 영역) */
   fallbackArea?: string;
-  /** 카드 원본에 match가 없을 때 쓸 개념 맞추기(카드 ID 'U1-t1' 기준, 컴퓨터 일반 card_match.json) */
+  /** 카드 원본에 match가 없을 때 쓸 개념 맞추기(카드 ID 'U1-t1' 기준, 컴퓨터 일반 content/cg/U<n>.json의 match) */
   matches?: Record<string, CgCardMatch>;
 }
 

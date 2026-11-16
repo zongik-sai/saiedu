@@ -1,23 +1,25 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NEW_COURSES, UNIT_COUNTS } from '../../src/features/computer/courses/defs';
+import { checkMatch5, checkMid, type RawMatch5, type RawMidGroup } from './conceptRules';
 
 /**
  * 새 과목(네트워크·프로그래밍·Data) 단원 원본 검사. 컴퓨터 일반 pc_bank.json 단원과 같은 형식 +
- * 이론 카드의 개념 맞추기(match)·선택 code, 문항의 선택 code.
+ * 이론 카드의 개념 맞추기(match: 뜻 5개 + 난이도별 함정, conceptRules.ts)·선택 code, 문항의 선택 code,
+ * 카드 3장마다 중간점검 문제은행(mid).
  * 단원 하나만: npx vitest run tests/unit/courseBanks.test.ts -t "net-U3"
  */
-interface Match { pairs: { term: string; desc: string }[]; distractor: string }
 interface Table { head: string[]; rows: string[][] }
 interface RawQ { id: string; q: string; code?: string; o: string[]; a: number; exp: string; area: string; type?: string }
 interface RawUnit {
   unit: number; title: string; intro: string;
-  theory: { id: string; title: string; points: string[]; table?: Table; tip?: string; code?: string; ext: boolean; match: Match }[];
+  theory: { id: string; title: string; points: string[]; table?: Table; tip?: string; code?: string; ext: boolean; match: RawMatch5 }[];
   bank: string[];
   fill: { id: string; text: string; answer: string; exp: string }[];
   basic: RawQ[];
   summary: { keys: { k: string; v: string }[]; compare: (Table & { title: string })[]; traps: string[] };
   advanced: RawQ[];
+  mid?: RawMidGroup[];
 }
 
 const TYPES = ['계산', '응용', '부정형', '비교', '코드', '확장'];
@@ -31,22 +33,6 @@ function checkCode(code: string | undefined, where: string) {
   if (code === undefined) return;
   expect(code.split('\n').length, `${where} 코드 줄 수`).toBeLessThanOrEqual(16);
   expect(code.length, `${where} 코드 길이`).toBeLessThanOrEqual(700);
-}
-function checkMatch(m: Match, text: string, where: string) {
-  expect(m.pairs, where).toHaveLength(3);
-  const terms = m.pairs.map((p) => p.term);
-  expect(new Set(terms).size, `${where} 용어 중복`).toBe(3);
-  expect(new Set(m.pairs.map((p) => p.desc)).size, `${where} 뜻 중복`).toBe(3);
-  expect(terms, `${where} 함정이 정답과 같음`).not.toContain(m.distractor);
-  expect(m.distractor.length, `${where} 함정 길이`).toBeGreaterThan(0);
-  expect(m.distractor.length, `${where} 함정 길이`).toBeLessThanOrEqual(30);
-  for (const p of m.pairs) {
-    expect(p.term.length, `${where} 용어 길이: ${p.term}`).toBeLessThanOrEqual(30);
-    expect(text.includes(p.term), `${where} 용어가 카드에 없음: ${p.term}`).toBe(true);
-    expect(p.desc.length, `${where} 뜻 길이: ${p.desc}`).toBeGreaterThanOrEqual(8);
-    expect(p.desc.length, `${where} 뜻 길이: ${p.desc}`).toBeLessThanOrEqual(70);
-    for (const t of terms) expect(p.desc.includes(t), `${where} 뜻에 용어가 드러남: "${p.desc}" ⊃ "${t}"`).toBe(false);
-  }
 }
 function checkMcq(q: RawQ, id: string, areas: string[], where: string, check: boolean) {
   expect(q.id, where).toBe(id);
@@ -97,8 +83,11 @@ for (const c of NEW_COURSES) {
           checkTable(t.table, where);
           checkCode(t.code, where);
           const text = [t.title, ...t.points, t.tip ?? '', t.code ?? '', ...(t.table ? [...t.table.head, ...t.table.rows.flat()] : [])].join('\n');
-          checkMatch(t.match, text, where);
+          checkMatch5(t.match, text, where);
         });
+      });
+      it(`${w} 중간점검: 카드 3장마다 문제은행`, () => {
+        checkMid(u.mid, u.theory.map((t) => t.id), w);
       });
       it(`${w} 끼워맞추기 빈칸 ${COUNTS.fill}개 + 예시답안 ${COUNTS.bank}개`, () => {
         expect(u.fill).toHaveLength(COUNTS.fill);
