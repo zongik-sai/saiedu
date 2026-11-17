@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { UNIT_STAGES } from '../../src/content/stages';
 import {
-  addUnitLock, completeActivity, answerQuestion, emptyLearnerState, markStageItem, mergeLearnerStates, nextStep, recordStageQuiz,
-  resetUnitProgress, stageOpen, stagePassed, unitStageLevel, UNIT_LOCK_LIMIT, unitStatus, type LearnerState,
+  addUnitLock, completeActivity, answerQuestion, emptyLearnerState, markStageItem, markStageMid, mergeLearnerStates, nextStep, reconcileStage1, recordStageQuiz,
+  resetUnitProgress, stageItemIds, stageMidIds, stageOpen, stagePassed, unitStageLevel, UNIT_LOCK_LIMIT, unitStatus, type LearnerState,
 } from '../../src/features/progress/model';
 import { UNITS } from '../../src/content';
 
@@ -73,18 +73,41 @@ describe('데이터베이스 단원 단계(1 이론·개념 맞추기 → 2 개�
     expect(m.stages?.U01?.s2).toMatchObject({ best: 9, passedAt: T(3) });
     expect(m.stages?.U01?.s1?.lastAt).toBe(T(2));
   });
-  it('두 기기에서 나눠 마친 카드가 합쳐져 모두 끝나면 1단계 통과', () => {
-    const cards = UNIT_STAGES.U01.cards;
+  it('두 기기에서 나눠 마친 카드·중간점검이 합쳐져 모두 끝나면 1단계 통과', () => {
+    const cards = stageItemIds('U01', 1);
+    const mids = stageMidIds('U01');
+    expect(mids).toEqual(['U01-m1', 'U01-m2']); // 카드 6장 → 3 + 3
     let a = pre(emptyLearnerState('t'));
     let b = pre(emptyLearnerState('t'));
     cards.forEach((c, i) => {
-      if (i % 2) a = markStageItem(a, 'U01', 1, c.id, T(i)).state;
-      else b = markStageItem(b, 'U01', 1, c.id, T(i)).state;
+      if (i % 2) a = markStageItem(a, 'U01', 1, c, T(i), mids).state;
+      else b = markStageItem(b, 'U01', 1, c, T(i), mids).state;
     });
     expect(stagePassed(a, 'U01', 1)).toBe(false);
+    // 카드만 합쳐서는 통과가 아니다(중간점검 묶음이 남음)
+    const m0 = mergeLearnerStates(a, b);
+    expect(stagePassed(m0, 'U01', 1)).toBe(false);
+    a = markStageMid(a, 'U01', 'U01-m1', mids, T(20)).state;
+    b = markStageMid(b, 'U01', 'U01-m2', mids, T(21)).state;
     const m = mergeLearnerStates(a, b);
     expect(stagePassed(m, 'U01', 1)).toBe(true);
-    expect(m.stages?.U01?.s1?.passedAt).toBe(T(cards.length - 1));
+    expect(m.stages?.U01?.s1).toMatchObject({ passedAt: T(21), best: cards.length, total: cards.length });
+  });
+  it('중간점검 콘텐츠가 아직 없는 단원: 나눠 마친 카드는 1단계 화면을 열 때 통과로 맞춘다(reconcileStage1)', () => {
+    const cards = stageItemIds('U01', 1);
+    let a = pre(emptyLearnerState('t'));
+    let b = pre(emptyLearnerState('t'));
+    cards.forEach((c, i) => {
+      if (i % 2) a = markStageItem(a, 'U01', 1, c, T(i)).state;
+      else b = markStageItem(b, 'U01', 1, c, T(i)).state;
+    });
+    const m = mergeLearnerStates(a, b);
+    expect(stagePassed(m, 'U01', 1)).toBe(false);
+    const r = reconcileStage1(m, 'U01', [], T(40));
+    expect(stagePassed(r, 'U01', 1)).toBe(true);
+    // 콘텐츠에 중간점검이 있으면 맞추지 않고, 바뀐 것이 없으면 같은 객체
+    expect(reconcileStage1(m, 'U01', stageMidIds('U01'), T(40))).toBe(m);
+    expect(reconcileStage1(r, 'U01', [], T(41))).toBe(r);
   });
   it('예전에 활동을 열어 보기만 했어도(초안·시간 기록) 4단계는 열려 있다', () => {
     const s = { ...pre(emptyLearnerState('t')), activities: { 'U02-A01': { ...completeActivity(emptyLearnerState('t'), 'U02-A01').activities['U02-A01'], completedAt: null, attempts: 0 } } };

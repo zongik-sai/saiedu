@@ -19,7 +19,10 @@ export interface MidCheckProps<Q extends MidItem = MidItem> {
   cardTitles: string[];
   status: MidStatus;
   storageKey: string;
-  /** 한 문항 채점(오답노트 기록용). 같은 문항을 다시 풀어 맞혀도 다시 부른다 */
+  /**
+   * 한 문항 채점(오답노트 기록용). 틀리면 언제나 부른다. 이번 회차에서 틀렸다가 뒤에서 다시 맞힌 것은 부르지 않는다
+   * (방금 정답·해설을 본 뒤라 오답노트에서 빼지 않음 — 오답노트에서 다시 풀어 맞히면 빠진다)
+   */
   onAnswer: (q: Q, correct: boolean) => void;
   /** 뽑은 문항을 모두 맞힘. practice면 이미 마친 묶음의 연습(진도에 영향 없음) */
   onComplete: (practice: boolean) => void;
@@ -114,10 +117,11 @@ function MidRunView<Q extends MidItem>(p: MidCheckProps<Q> & { run: MidRun; setR
   const grade = () => {
     if (pick === null || fb) return;
     const correct = pick === q.answer;
+    const retried = (run.misses[q.id] ?? 0) > 0;
     const next = answerMidRun(run, q.id, correct, q.options.length);
     setFb({ qid: q.id, picked: pick, order, correct });
     p.setRun(next);
-    p.onAnswer(q, correct);
+    if (!(correct && retried)) p.onAnswer(q, correct);
     // 마지막 문항을 맞힌 순간 마친 것으로 기록(결과 보기 전에 나가도 남게)
     if (midRunDone(next)) p.onComplete(next.practice);
   };
