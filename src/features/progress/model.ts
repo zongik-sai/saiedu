@@ -1,6 +1,7 @@
 import { ACTIVITY_BY_ID, CHALLENGE_BY_ID, CHECKPOINTS, FINAL_DIAGNOSTIC, QUESTION_BY_ID, UNITS, UNIT_BY_ID, UNIT_IDS, VARIANT_OF, challengeOf } from '../../content';
 import type { UnitId } from '../../content/types';
 import { STAGE_COUNTS, quizNeed } from '../../content/stages/meta';
+import { midGroupsOf } from '../../lib/concepts';
 
 /**
  * 학습자 진도 상태(순수 데이터 + 순수 함수).
@@ -70,7 +71,7 @@ export interface LearnerState {
   unitResets?: Partial<Record<UnitId, { at: string; n: number }>>;
   /** 단원 단계(1 이론·개념 맞추기, 2 개념 점검, 3 실습 설명·맞추기) 기록. 4단계는 기존 활동·체크포인트 */
   stages?: Partial<Record<UnitId, Partial<Record<StageKey, StageRecord>>>>;
-  /** 마친 이론 카드·실습 예제(ID → 처음 마친 시각) */
+  /** 마친 이론 카드·실습 예제·중간점검 묶음(ID 'U01-t1'·'U01-p1'·'U01-m1' → 처음 마친 시각) */
   stageItems?: Record<string, string>;
 }
 
@@ -460,19 +461,81 @@ function setStage(s: LearnerState, u: UnitId, k: StageKey, f: (r: StageRecord) =
   return { ...s, stages: { ...(s.stages ?? {}), [u]: cur } };
 }
 
-/** 1단계 카드·3단계 예제 하나를 마침. 그 단계의 항목을 모두 마치면 단계 통과 */
 /** 1단계 카드·3단계 예제 ID 목록 */
 export const stageItemIds = (u: UnitId, n: 1 | 3): string[] => Array.from({ length: n === 1 ? STAGE_COUNTS[u].cards : STAGE_COUNTS[u].practice }, (_, i) => `${u}-${n === 1 ? 't' : 'p'}${i + 1}`);
 
-export function markStageItem(s: LearnerState, u: UnitId, n: 1 | 3, itemId: string, now = new Date().toISOString()): { state: LearnerState; stageDone: boolean; firstPass: boolean } {
+/**
+ * 1단계 중간점검 묶음 ID를 카드 수로 계산(카드 3장마다, conceptRules와 같은 규칙: 'U01-m1' …). 콘텐츠를 읽지 않는 곳(기록 병합)용.
+ * 콘텐츠에 mid가 아직 없는 단원도 이 목록이 나오므로, 통과 판정은 화면이 콘텐츠의 묶음 목록을 넘겨 한다(markStageItem·markStageMid).
+ */
+export const stageMidIds = (u: UnitId): string[] => midGroupsOf(`${u}-`, stageItemIds(u, 1)).map((g) => g.id);
+
+/** 단계 항목 ID 형식: 카드(t)·예제(p)·중간점검 묶음(m) */
+export const STAGE_ITEM_RE = /^U\d{2}-[tpm]\d{1,2}$/;
+/** 저장된 마친 항목 기록을 안전하게 읽는다(이 과정 단원의 형식이 맞는 ID와 시각 문자열만) */
+export function sanitizeStageItems(raw: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (STAGE_ITEM_RE.test(k) && (UNIT_IDS as readonly string[]).includes(k.slice(0, 3)) && typeof v === 'string') out[k] = v;
+  }
+  return out;
+}
+
+/** 1단계를 통과할 만큼 했는지: 카드 전부 + (콘텐츠의) 중간점검 묶음 전부. 묶음이 없는 단원은 카드만(예전 규칙) */
+const stage1Complete = (s: LearnerState, u: UnitId, midIds: readonly string[]) =>
+  stageItemIds(u, 1).every((id) => stageItemDone(s, id)) && midIds.every((id) => stageItemDone(s, id));
+
+/**
+ * 1단계 카드·3단계 예제 하나를 마침. 3단계는 예제를 모두 마치면 통과. 1단계는 카드를 모두 마치고 중간점검 묶음(midIds,
+ * 콘텐츠에서)도 모두 마쳐야 통과. 한 번 통과한 단계는 되돌리지 않는다(예전 규칙으로 통과한 학생의 중간점검은 연습으로 남음).
+ */
+export function markStageItem(s: LearnerState, u: UnitId, n: 1 | 3, itemId: string, now = new Date().toISOString(), midIds: readonly string[] = []): { state: LearnerState; stageDone: boolean; firstPass: boolean } {
   const ids = stageItemIds(u, n);
   let state: LearnerState = stageItemDone(s, itemId) ? s : { ...s, stageItems: { ...(s.stageItems ?? {}), [itemId]: now } };
   const done = ids.filter((id) => stageItemDone(state, id)).length;
-  const stageDone = done === ids.length;
+  const stageDone = n === 1 ? stage1Complete(state, u, midIds) : done === ids.length;
   const firstPass = stageDone && !stagePassed(state, u, n);
+  // 단계 기록의 점수 칸은 예전처럼 카드·예제 수(중간점검은 stageItems에서 센다)
   state = setStage(state, u, `s${n}`, (r) => ({ ...r, best: done, total: ids.length, ...(stageDone ? { passedAt: r.passedAt ?? now } : {}), lastAt: now }));
   return { state, stageDone, firstPass };
 }
+
+/** 1단계 중간점검 묶음 하나를 마침(10문항을 모두 맞힘). midIds: 이 단원 콘텐츠의 모든 묶음 ID */
+export function markStageMid(s: LearnerState, u: UnitId, midId: string, midIds: readonly string[], now = new Date().toISOString()): { state: LearnerState; stageDone: boolean; firstPass: boolean } {
+  const state: LearnerState = stageItemDone(s, midId) ? s : { ...s, stageItems: { ...(s.stageItems ?? {}), [midId]: now } };
+  const stageDone = stage1Complete(state, u, midIds);
+  const firstPass = stageDone && !stagePassed(state, u, 1);
+  if (!firstPass) return { state, stageDone, firstPass };
+  return { state: setStage(state, u, 's1', (r) => ({ ...r, passedAt: r.passedAt ?? now, lastAt: now })), stageDone, firstPass };
+}
+
+/**
+ * 1단계 화면을 열 때: 다른 기기와 합쳐 카드·중간점검을 모두 마쳤는데 아직 통과 기록이 없으면 통과로(기록 병합은 콘텐츠를 모름).
+ * 바뀐 것이 없으면 같은 객체를 돌려준다.
+ */
+export function reconcileStage1(s: LearnerState, u: UnitId, midIds: readonly string[], now = new Date().toISOString()): LearnerState {
+  if (stagePassed(s, u, 1) || !stage1Complete(s, u, midIds)) return s;
+  const n = stageItemIds(u, 1).length;
+  return setStage(s, u, 's1', (r) => ({ ...r, best: n, total: n, passedAt: now, lastAt: now }));
+}
+
+/** 1단계 진행: 마친 카드·중간점검 묶음 수(midIds: 콘텐츠의 묶음 ID) */
+export function stage1Progress(s: LearnerState, u: UnitId, midIds: readonly string[]) {
+  const cards = stageItemIds(u, 1);
+  return { cards: cards.filter((id) => stageItemDone(s, id)).length, cardsTotal: cards.length, mids: midIds.filter((id) => stageItemDone(s, id)).length, midsTotal: midIds.length };
+}
+
+/** 1단계 중간점검에서 틀린 문항을 오답 복습(wrongLog)에 남긴다(경험치·통과와 무관). tags: 다루는 카드 제목 */
+export function recordStageMiss(s: LearnerState, qid: string, tags: string[], now = new Date().toISOString()): LearnerState {
+  return { ...s, wrongLog: [...s.wrongLog, { itemId: qid, conceptTags: tags.length ? tags : ['중간점검'], at: now }].slice(-300) };
+}
+
+/** 중간점검 문항 ID('U01-m1-q3')인지와 그 단원 */
+export const midQuestionUnit = (id: string): UnitId | null => {
+  const m = /^(U\d{2})-m\d{1,2}-q\d{1,3}$/.exec(id);
+  return m && (UNIT_IDS as readonly string[]).includes(m[1]) ? (m[1] as UnitId) : null;
+};
 
 /** 2단계 개념 점검 결과. 최고 점수 유지, 기준(70%) 이상이면 통과 */
 export function recordStageQuiz(s: LearnerState, u: UnitId, score: number, total: number, now = new Date().toISOString()): { state: LearnerState; passed: boolean; firstPass: boolean } {
@@ -512,18 +575,21 @@ function mergeStages(a: LearnerState, b: LearnerState): Pick<LearnerState, 'stag
     }
     stages[u] = out;
   }
+  const ia = sanitizeStageItems(a.stageItems), ib = sanitizeStageItems(b.stageItems);
   const stageItems: Record<string, string> = {};
-  for (const k of new Set([...Object.keys(a.stageItems ?? {}), ...Object.keys(b.stageItems ?? {})])) {
-    stageItems[k] = minIso(a.stageItems?.[k], b.stageItems?.[k])!;
+  for (const k of new Set([...Object.keys(ia), ...Object.keys(ib)])) {
+    stageItems[k] = minIso(ia[k], ib[k])!;
   }
-  // 두 기기에서 나눠 마친 카드·예제가 합쳐져 모두 끝났으면 그 단계도 통과
+  // 두 기기에서 나눠 마친 카드·예제가 합쳐져 모두 끝났으면 그 단계도 통과.
+  // 1단계는 중간점검 묶음(카드 수로 계산한 ID)도 모두 마쳐야 한다. 중간점검 콘텐츠가 아직 없는 단원은 1단계 화면을 열 때 통과로 맞춘다(reconcileStage1)
   for (const u of UNIT_IDS) {
-    for (const [k, ids] of [['s1', stageItemIds(u, 1)], ['s3', stageItemIds(u, 3)]] as const) {
+    for (const [k, ids] of [['s1', [...stageItemIds(u, 1), ...stageMidIds(u)]], ['s3', stageItemIds(u, 3)]] as const) {
       const times = ids.map((id) => stageItems[id]);
       const rec = stages[u]?.[k];
       if (!ids.length || times.some((t) => !t) || rec?.passedAt) continue;
       const at = times.reduce((m, t) => (t! > m ? t! : m), '');
-      stages[u] = { ...(stages[u] ?? {}), [k]: { ...(rec ?? {}), best: ids.length, total: ids.length, passedAt: at, lastAt: maxIso(rec?.lastAt, at) } };
+      const n = k === 's1' ? stageItemIds(u, 1).length : ids.length;
+      stages[u] = { ...(stages[u] ?? {}), [k]: { ...(rec ?? {}), best: n, total: n, passedAt: at, lastAt: maxIso(rec?.lastAt, at) } };
     }
   }
   return { stages, stageItems };
