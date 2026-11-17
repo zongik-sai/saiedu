@@ -10,9 +10,9 @@ import { useLiveDetail } from '../features/monitor/liveStore';
  * 풀던 회차(뽑은 문항·남은 순서·맞힌 문항·보기 순서)는 storageKey에 저장해 새로고침해도 이어 푼다(마치면 지움).
  * 이미 마친 묶음(또는 1단계를 예전 규칙으로 통과해 연습으로 남은 묶음)은 '연습으로 다시 풀기': 새로 뽑고, 진도에는 영향 없음.
  */
-export interface MidCheckProps {
+export interface MidCheckProps<Q extends MidItem = MidItem> {
   groupId: string;
-  bank: MidItem[];
+  bank: Q[];
   /** 'N번째 중간점검 · 카드 1~3' 같은 제목 */
   title: string;
   /** 이 묶음이 다루는 카드 제목(안내용) */
@@ -20,7 +20,7 @@ export interface MidCheckProps {
   status: MidStatus;
   storageKey: string;
   /** 한 문항 채점(오답노트 기록용). 같은 문항을 다시 풀어 맞혀도 다시 부른다 */
-  onAnswer: (q: MidItem, correct: boolean) => void;
+  onAnswer: (q: Q, correct: boolean) => void;
   /** 뽑은 문항을 모두 맞힘. practice면 이미 마친 묶음의 연습(진도에 영향 없음) */
   onComplete: (practice: boolean) => void;
   /** 마친 뒤 보일 다음 할 일(버튼 등) */
@@ -29,7 +29,7 @@ export interface MidCheckProps {
 
 interface Feedback { qid: string; picked: number; order: number[]; correct: boolean }
 
-export function MidCheck(p: MidCheckProps) {
+export function MidCheck<Q extends MidItem>(p: MidCheckProps<Q>) {
   const total = Math.min(MID_DRAW, p.bank.length);
   const saved = useMemo(() => resumeMidRun(readJson<unknown>(p.storageKey, null), p.groupId, p.bank), [p.storageKey, p.groupId, p.bank]);
   // 풀 차례인 묶음은 바로 시작(새로 뽑거나 이어 풀기). 마친·연습 묶음은 안내 후 '연습으로 다시 풀기'(풀던 연습이 있으면 이어서)
@@ -70,7 +70,7 @@ export function MidCheck(p: MidCheckProps) {
   return <MidRunView {...p} run={run} setRun={setRun} total={total} onFinished={(practice, missed) => setDone({ practice, missed })} />;
 }
 
-function MidRunView(p: MidCheckProps & { run: MidRun; setRun: (r: MidRun) => void; total: number; onFinished: (practice: boolean, missed: number) => void }) {
+function MidRunView<Q extends MidItem>(p: MidCheckProps<Q> & { run: MidRun; setRun: (r: MidRun) => void; total: number; onFinished: (practice: boolean, missed: number) => void }) {
   const { run } = p;
   const byId = useMemo(() => new Map(p.bank.map((q) => [q.id, q])), [p.bank]);
   const [fb, setFb] = useState<Feedback | null>(null);

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { UNIT_BY_ID } from '../../content';
-import { UNIT_STAGES, quizNeed, type PracticeItem, type StageCard, type StageMidQuiz } from '../../content/stages';
+import { UNIT_STAGES, quizNeed, type PracticeItem, type StageCard } from '../../content/stages';
 import type { UnitId } from '../../content/types';
 import { useLearner } from '../../app/LearnerContext';
 import { useLiveDetail } from '../monitor/liveStore';
@@ -219,7 +219,7 @@ function TheoryStage({ u }: { u: UnitId }) {
       {view.kind === 'mid' ? (
         <StageMid key={`${S.mids[view.gi].id}:${round}`} u={u} gi={view.gi} storageKey={midKey(S.mids[view.gi].id)}
           passedBlock={<><b>{passText}</b><NextStage unitId={u} n={1} /></>} nextButton={nextButton} />
-      ) : c && (st0(phase, c) ? (
+      ) : c && (isReading(phase, c) ? (
         <article className="panel stack cg-card" aria-labelledby={`card-${c.id}`}>
           <CardView c={c} n={idx + 1} />
           <div className="row">
@@ -266,7 +266,7 @@ function TheoryStage({ u }: { u: UnitId }) {
 }
 
 /** 읽기 화면인지(개념 맞추기가 없는 카드는 늘 읽기) */
-const st0 = (phase: 'read' | 'match', c: StageCard) => phase === 'read' || !c.match;
+const isReading = (phase: 'read' | 'match', c: StageCard) => phase === 'read' || !c.match;
 
 /** 1단계 중간점검 한 묶음(카드 3장마다) */
 function StageMid({ u, gi, storageKey, passedBlock, nextButton }: { u: UnitId; gi: number; storageKey: string; passedBlock: ReactElement; nextButton: (from: ConceptView) => ReactElement | null }) {
@@ -291,7 +291,7 @@ function StageMid({ u, gi, storageKey, passedBlock, nextButton }: { u: UnitId; g
       status={status}
       storageKey={storageKey}
       // 틀린 문항은 오답 복습에 남긴다(카드 제목으로 묶음). 경험치·통과와는 무관
-      onAnswer={(q, correct) => { if (!correct) void L.commit((s) => recordStageMiss(s, q.id, [titleOf((q as StageMidQuiz).card) ?? '중간점검'])); }}
+      onAnswer={(q, correct) => { if (!correct) void L.commit((s) => recordStageMiss(s, q.id, [titleOf(q.card) ?? '중간점검'])); }}
       onComplete={() => { if (!isDone(g.id)) void L.commit((s) => markStageMid(s, u, g.id, midIds).state, { immediate: true }); }}
       after={after}
     />
