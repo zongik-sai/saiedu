@@ -143,18 +143,28 @@ export function deriveFocus(i: FocusInput): LiveFocus {
   return i.activity ? 'learning' : 'menu';
 }
 
+/** 중간점검 위치(1단계 화면이 알림): '중간점검 k/10' */
+const MID_DETAIL_RE = /^중간점검 \d{1,2}\/\d{1,2}$/;
+/** 단원 ID('U3'·'U03') → 'N단원' */
+const unitHead = (unit: string | null) => {
+  const n = unit ? /^U(\d{1,2})$/.exec(unit)?.[1] : undefined;
+  return n ? `${Number(n)}단원` : unit ?? '';
+};
+
 export function buildLiveState(i: { path: string; detail: string | null; fs: boolean; sharing: boolean; dev: string } & Omit<FocusInput, 'activity'>): LiveState {
   const loc = deriveLocation(i.path);
   // 실력점검(자기 점검) 중: 'N단원 · 실력점검 문항 k/10' 한 줄로(문항 위치를 이름에 붙이고 detail은 비움)
   const inSelfCheck = loc.step === '5' && !!loc.subject && SELF_CHECK_SUBJECTS.has(loc.subject) && !!i.detail && /^문항 \d{1,3}\/\d{1,3}$/.test(i.detail);
+  // 1단계 중간점검 중(두 엔진 공통): 'N단원 · 중간점검 k/10'(맞힌 문항 수)
+  const inMid = !inSelfCheck && !!loc.unit && (loc.step === '1' || loc.step === 'stage:1') && !!i.detail && MID_DETAIL_RE.test(i.detail);
   return {
     v: 1,
     subject: loc.subject,
     path: cleanPath(i.path),
     unit: loc.unit,
     step: loc.step,
-    label: (inSelfCheck ? `${loc.label} ${i.detail}` : loc.label).slice(0, 120),
-    detail: inSelfCheck ? null : i.detail ? i.detail.slice(0, 80) : null,
+    label: (inSelfCheck ? `${loc.label} ${i.detail}` : inMid ? `${unitHead(loc.unit)} · ${i.detail}` : loc.label).slice(0, 120),
+    detail: inSelfCheck || inMid ? null : i.detail ? i.detail.slice(0, 80) : null,
     focus: deriveFocus({ ...i, activity: loc.activity }),
     fs: i.fs,
     locks: i.session?.strict ? Math.max(0, Math.min(99, i.session.strict.locks)) : null,
