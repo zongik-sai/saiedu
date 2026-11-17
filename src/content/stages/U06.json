@@ -11,23 +11,67 @@
         "GROUP BY 없이 쓰면 표 전체가 한 묶음이라 결과는 딱 1행이에요."
       ],
       "table": {
-        "header": ["집계 함수", "하는 일", "enrollment 결과"],
+        "header": [
+          "집계 함수",
+          "하는 일",
+          "enrollment 결과"
+        ],
         "rows": [
-          ["COUNT(score)", "값 개수", "5"],
-          ["SUM(score)", "합계", "410"],
-          ["AVG(score)", "평균", "82"],
-          ["MIN(score)", "가장 작은 값", "70"],
-          ["MAX(score)", "가장 큰 값", "90"]
+          [
+            "COUNT(score)",
+            "값 개수",
+            "5"
+          ],
+          [
+            "SUM(score)",
+            "합계",
+            "410"
+          ],
+          [
+            "AVG(score)",
+            "평균",
+            "82"
+          ],
+          [
+            "MIN(score)",
+            "가장 작은 값",
+            "70"
+          ],
+          [
+            "MAX(score)",
+            "가장 큰 값",
+            "90"
+          ]
         ]
       },
       "tip": "SUM·AVG는 숫자 열에 써요. COUNT·MIN·MAX는 문자·날짜 열에도 쓸 수 있어요.",
       "match": {
+        "level": "easy",
         "pairs": [
-          { "term": "SUM", "desc": "값들을 모두 더한 합계를 구해요(점수는 410)" },
-          { "term": "AVG", "desc": "값들의 평균을 구해요(점수는 82)" },
-          { "term": "MIN", "desc": "가장 작은 값을 찾아요(점수는 70)" }
+          {
+            "term": "집계 함수",
+            "desc": "여러 행의 값을 모아 결과 값 하나를 돌려주는 함수"
+          },
+          {
+            "term": "COUNT",
+            "desc": "값이 몇 개인지 개수를 세요(점수는 5개)"
+          },
+          {
+            "term": "SUM",
+            "desc": "값들을 모두 더한 합계를 구해요(점수는 410)"
+          },
+          {
+            "term": "AVG",
+            "desc": "값들의 평균을 구해요(점수는 82)"
+          },
+          {
+            "term": "MIN",
+            "desc": "가장 작은 값을 찾아요(점수는 70)"
+          }
         ],
-        "distractor": "MAX"
+        "distractors": [
+          "MAX"
+        ]
       }
     },
     {
@@ -40,21 +84,61 @@
         "예: enrollment 표는 6행이고, 다온(student_id 3)의 SQL캠프 점수 하나만 NULL이에요."
       ],
       "table": {
-        "header": ["식", "세는 것", "enrollment 결과"],
+        "header": [
+          "식",
+          "세는 것",
+          "enrollment 결과"
+        ],
         "rows": [
-          ["COUNT(*)", "모든 행", "6"],
-          ["COUNT(score)", "score가 NULL이 아닌 행", "5"],
-          ["COUNT(DISTINCT score)", "서로 다른 점수 90·80·70", "3"]
+          [
+            "COUNT(*)",
+            "모든 행",
+            "6"
+          ],
+          [
+            "COUNT(score)",
+            "score가 NULL이 아닌 행",
+            "5"
+          ],
+          [
+            "COUNT(DISTINCT score)",
+            "서로 다른 점수 90·80·70",
+            "3"
+          ]
         ]
       },
       "tip": "행 수는 COUNT(*), 값이 채워진 개수는 COUNT(열)로 기억해요.",
       "match": {
+        "level": "hard",
         "pairs": [
-          { "term": "COUNT(*)", "desc": "빈 점수 행까지 포함해 모든 행을 세요(결과 6)" },
-          { "term": "COUNT(score)", "desc": "점수가 채워진 행만 세요(결과 5)" },
-          { "term": "COUNT(DISTINCT score)", "desc": "빈 값은 빼고 겹치는 점수는 한 번만 세요(결과 3)" }
+          {
+            "term": "COUNT(*)",
+            "desc": "빈 점수 행까지 포함해 모든 행을 세요(결과 6)"
+          },
+          {
+            "term": "COUNT(score)",
+            "desc": "점수가 채워진 행만 세요(결과 5)"
+          },
+          {
+            "term": "COUNT(DISTINCT score)",
+            "desc": "빈 값은 빼고 겹치는 점수는 한 번만 세요(결과 3)"
+          },
+          {
+            "term": "NULL",
+            "desc": "값이 비어 있거나 모른다는 표시로, 0과는 달라요"
+          },
+          {
+            "term": "DISTINCT",
+            "desc": "같은 값은 하나만 남기라고 붙이는 키워드(3단원에서 배움)"
+          }
         ],
-        "distractor": "SUM(score)"
+        "distractors": [
+          "SUM(score)",
+          "AVG(score)",
+          "MAX(score)",
+          "COALESCE",
+          "IS NULL"
+        ]
       }
     },
     {
@@ -67,20 +151,54 @@
         "값이 모두 NULL이거나 행이 없으면 SUM·AVG·MIN·MAX는 NULL, COUNT(열)은 0을 돌려줘요."
       ],
       "table": {
-        "header": ["식", "계산", "결과"],
+        "header": [
+          "식",
+          "계산",
+          "결과"
+        ],
         "rows": [
-          ["AVG(score)", "410 ÷ 5 (NULL 행 제외)", "82"],
-          ["AVG(COALESCE(score, 0))", "410 ÷ 6 (NULL을 0으로)", "68.33…"]
+          [
+            "AVG(score)",
+            "410 ÷ 5 (NULL 행 제외)",
+            "82"
+          ],
+          [
+            "AVG(COALESCE(score, 0))",
+            "410 ÷ 6 (NULL을 0으로)",
+            "68.33…"
+          ]
         ]
       },
       "tip": "함정: SUM(a + b)는 a나 b가 NULL인 행을 통째로 빼서 SUM(a) + SUM(b)와 다를 수 있어요.",
       "match": {
+        "level": "mid",
         "pairs": [
-          { "term": "NULL", "desc": "값이 없거나 알 수 없는 상태로, 0과는 달라요" },
-          { "term": "COALESCE", "desc": "빈 값을 지정한 값으로 바꿔 주는 표준 SQL 함수" },
-          { "term": "NVL", "desc": "Oracle에서 빈 값을 다른 값으로 바꾸는 함수" }
+          {
+            "term": "NULL",
+            "desc": "값이 없거나 알 수 없는 상태로, 0과는 달라요"
+          },
+          {
+            "term": "COALESCE",
+            "desc": "빈 값을 지정한 값으로 바꿔 주는 표준 SQL 함수"
+          },
+          {
+            "term": "NVL",
+            "desc": "Oracle 전용으로 빈 값을 다른 값으로 바꾸는 함수"
+          },
+          {
+            "term": "AVG(score)",
+            "desc": "빈 점수 행은 빼고 410 ÷ 5로 계산한 평균(82)"
+          },
+          {
+            "term": "AVG(COALESCE(score, 0))",
+            "desc": "빈 점수를 0으로 바꿔 410 ÷ 6으로 계산한 평균"
+          }
         ],
-        "distractor": "ISNULL"
+        "distractors": [
+          "COUNT(*)",
+          "SUM(score)",
+          "NULLIF"
+        ]
       }
     },
     {
@@ -93,20 +211,54 @@
         "SELECT에는 GROUP BY에 쓴 열과 집계 함수만 써요. 다른 열을 쓰면 Oracle·SQL Server는 오류예요(SQLite는 아무 값이나 보여 줘요)."
       ],
       "table": {
-        "header": ["course_id", "COUNT(*)", "AVG(score)"],
+        "header": [
+          "course_id",
+          "COUNT(*)",
+          "AVG(score)"
+        ],
         "rows": [
-          ["101", "3", "90"],
-          ["102", "3", "76.67"]
+          [
+            "101",
+            "3",
+            "90"
+          ],
+          [
+            "102",
+            "3",
+            "76.67"
+          ]
         ]
       },
       "tip": "GROUP BY 열 값이 NULL인 행들도 버려지지 않고 NULL 그룹 하나로 모여요.",
       "match": {
+        "level": "mid",
         "pairs": [
-          { "term": "GROUP BY", "desc": "같은 값을 가진 행끼리 묶는 절" },
-          { "term": "그룹", "desc": "묶는 열의 값이 같은 행들이 모인 한 묶음" },
-          { "term": "COUNT(*)", "desc": "묶음마다 들어 있는 행 개수를 세요(101은 3)" }
+          {
+            "term": "GROUP BY",
+            "desc": "같은 값을 가진 행끼리 묶는 절"
+          },
+          {
+            "term": "그룹",
+            "desc": "묶는 열의 값이 같은 행들이 모인 한 묶음"
+          },
+          {
+            "term": "COUNT(*)",
+            "desc": "묶음마다 들어 있는 행 개수를 세요(101은 3)"
+          },
+          {
+            "term": "AVG(score)",
+            "desc": "묶음마다 점수 평균을 구해요(102는 76.67)"
+          },
+          {
+            "term": "SELECT",
+            "desc": "보여 줄 열을 적는 절로, 묶은 열과 집계 함수만 쓸 수 있어요"
+          }
         ],
-        "distractor": "HAVING"
+        "distractors": [
+          "HAVING",
+          "ORDER BY",
+          "SUM(score)"
+        ]
       }
     },
     {
@@ -119,21 +271,59 @@
         "행 조건(grade = 3)은 WHERE에, 그룹 조건(COUNT(*) >= 2)은 HAVING에 써요."
       ],
       "table": {
-        "header": ["구분", "WHERE", "HAVING"],
+        "header": [
+          "구분",
+          "WHERE",
+          "HAVING"
+        ],
         "rows": [
-          ["거르는 대상", "행 하나하나", "그룹"],
-          ["처리 시점", "GROUP BY 전", "GROUP BY 후"],
-          ["집계 함수 조건", "쓸 수 없음", "쓸 수 있음"]
+          [
+            "거르는 대상",
+            "행 하나하나",
+            "그룹"
+          ],
+          [
+            "처리 시점",
+            "GROUP BY 전",
+            "GROUP BY 후"
+          ],
+          [
+            "집계 함수 조건",
+            "쓸 수 없음",
+            "쓸 수 있음"
+          ]
         ]
       },
       "tip": "조건에 COUNT·SUM·AVG·MIN·MAX가 들어 있으면 HAVING 자리예요!",
       "match": {
+        "level": "mid",
         "pairs": [
-          { "term": "HAVING", "desc": "묶음을 만든 뒤 조건에 맞는 묶음만 남기는 절" },
-          { "term": "WHERE", "desc": "묶기 전에 행을 하나씩 거르는 절" },
-          { "term": "AVG(score) >= 80", "desc": "강좌 묶음의 평균 점수가 80 이상인지 보는 조건식" }
+          {
+            "term": "HAVING",
+            "desc": "묶음을 만든 뒤 조건에 맞는 묶음만 남기는 절"
+          },
+          {
+            "term": "WHERE",
+            "desc": "묶기 전에 행을 하나씩 거르는 절"
+          },
+          {
+            "term": "AVG(score) >= 80",
+            "desc": "강좌 묶음의 평균 점수가 80 이상인지 보는 조건식"
+          },
+          {
+            "term": "COUNT(*) >= 2",
+            "desc": "묶음 안의 행이 2개 이상인지 보는 조건식"
+          },
+          {
+            "term": "grade = 3",
+            "desc": "행마다 3학년인지 보는 행 조건식"
+          }
         ],
-        "distractor": "ORDER BY"
+        "distractors": [
+          "ORDER BY",
+          "GROUP BY",
+          "SELECT"
+        ]
       }
     },
     {
@@ -147,24 +337,72 @@
         "NULL 위치는 DBMS마다 달라요. Oracle은 가장 큰 값처럼(ASC면 맨 뒤), SQL Server·SQLite는 가장 작은 값처럼(ASC면 맨 앞) 정렬해요."
       ],
       "table": {
-        "header": ["순서", "student_name", "grade"],
+        "header": [
+          "순서",
+          "student_name",
+          "grade"
+        ],
         "rows": [
-          ["1", "가온", "3"],
-          ["2", "나래", "3"],
-          ["3", "라온", "3"],
-          ["4", "다온", "2"],
-          ["5", "바다", "2"],
-          ["6", "마루", "1"]
+          [
+            "1",
+            "가온",
+            "3"
+          ],
+          [
+            "2",
+            "나래",
+            "3"
+          ],
+          [
+            "3",
+            "라온",
+            "3"
+          ],
+          [
+            "4",
+            "다온",
+            "2"
+          ],
+          [
+            "5",
+            "바다",
+            "2"
+          ],
+          [
+            "6",
+            "마루",
+            "1"
+          ]
         ]
       },
       "tip": "ORDER BY에서는 SELECT의 별칭(avg_score)이나 열 순번(2)도 쓸 수 있어요.",
       "match": {
+        "level": "easy",
         "pairs": [
-          { "term": "ORDER BY", "desc": "결과 행의 순서를 정하고 문장 맨 끝에 쓰는 절" },
-          { "term": "ASC", "desc": "작은 값부터 정렬하며, 생략하면 이 방식이 기본이에요" },
-          { "term": "DESC", "desc": "큰 값부터 거꾸로 정렬해요" }
+          {
+            "term": "ORDER BY",
+            "desc": "결과 행의 순서를 정하고 문장 맨 끝에 쓰는 절"
+          },
+          {
+            "term": "ASC",
+            "desc": "작은 값부터 정렬하며, 생략하면 이 방식이 기본이에요"
+          },
+          {
+            "term": "DESC",
+            "desc": "큰 값부터 거꾸로 정렬해요"
+          },
+          {
+            "term": "열 순번",
+            "desc": "정렬 기준을 SELECT 목록의 몇째 열인지 숫자로 적은 것"
+          },
+          {
+            "term": "NULL",
+            "desc": "정렬 위치가 DBMS마다 다른 빈 값(Oracle은 가장 큰 값처럼)"
+          }
         ],
-        "distractor": "GROUP BY"
+        "distractors": [
+          "GROUP BY"
+        ]
       }
     },
     {
@@ -178,24 +416,76 @@
         "SQLite는 WHERE·HAVING에서도 별칭을 받아 주는 경우가 있지만, 시험은 ORDER BY에서만 쓸 수 있다고 기억해요."
       ],
       "table": {
-        "header": ["실행 순서", "절", "하는 일"],
+        "header": [
+          "실행 순서",
+          "절",
+          "하는 일"
+        ],
         "rows": [
-          ["1", "FROM", "표 가져오기"],
-          ["2", "WHERE", "행 거르기"],
-          ["3", "GROUP BY", "그룹 묶기"],
-          ["4", "HAVING", "그룹 거르기"],
-          ["5", "SELECT", "보여 줄 열 계산"],
-          ["6", "ORDER BY", "정렬"]
+          [
+            "1",
+            "FROM",
+            "표 가져오기"
+          ],
+          [
+            "2",
+            "WHERE",
+            "행 거르기"
+          ],
+          [
+            "3",
+            "GROUP BY",
+            "그룹 묶기"
+          ],
+          [
+            "4",
+            "HAVING",
+            "그룹 거르기"
+          ],
+          [
+            "5",
+            "SELECT",
+            "보여 줄 열 계산"
+          ],
+          [
+            "6",
+            "ORDER BY",
+            "정렬"
+          ]
         ]
       },
       "tip": "실행 순서 외우기: 프·웨·그·해·셀·오(FROM·WHERE·GROUP·HAVING·SELECT·ORDER)",
       "match": {
+        "level": "hard",
         "pairs": [
-          { "term": "FROM", "desc": "가장 먼저 처리되어 데이터를 가져올 표를 정해요" },
-          { "term": "SELECT", "desc": "다섯 번째로 처리되어 보여 줄 열과 계산을 정해요" },
-          { "term": "별칭", "desc": "열에 붙인 새 이름으로, 시험 기준 정렬 절에서만 쓸 수 있어요" }
+          {
+            "term": "FROM",
+            "desc": "가장 먼저 처리되어 데이터를 가져올 표를 정해요"
+          },
+          {
+            "term": "SELECT",
+            "desc": "다섯 번째로 처리되어 보여 줄 열과 계산을 정해요"
+          },
+          {
+            "term": "별칭",
+            "desc": "열에 붙인 새 이름으로, 시험 기준 정렬 절에서만 쓸 수 있어요"
+          },
+          {
+            "term": "작성 순서",
+            "desc": "사람이 SQL 문을 적을 때 절을 늘어놓는 차례"
+          },
+          {
+            "term": "실행 순서",
+            "desc": "DBMS가 절을 실제로 처리하는 차례(표 가져오기가 맨 처음)"
+          }
         ],
-        "distractor": "WHERE"
+        "distractors": [
+          "WHERE",
+          "GROUP BY",
+          "HAVING",
+          "ORDER BY",
+          "DISTINCT"
+        ]
       }
     }
   ],
@@ -216,7 +506,12 @@
     {
       "id": "U06-c2",
       "question": "표 t의 열 a 값이 1, NULL, 1, 2, NULL(모두 5행)일 때 결과는?\nSELECT COUNT(*), COUNT(a), COUNT(DISTINCT a) FROM t;",
-      "options": ["5, 5, 2", "5, 3, 3", "5, 3, 2", "3, 3, 2"],
+      "options": [
+        "5, 5, 2",
+        "5, 3, 3",
+        "5, 3, 2",
+        "3, 3, 2"
+      ],
       "answer": 2,
       "explanation": "COUNT(*)는 행 수 5, COUNT(a)는 NULL을 뺀 3(1, 1, 2), COUNT(DISTINCT a)는 NULL을 빼고 같은 값을 한 번만 세서 2(1, 2)예요.",
       "tag": "COUNT(*)와 COUNT(열)"
@@ -224,7 +519,12 @@
     {
       "id": "U06-c3",
       "question": "표 t의 열 point 값이 10, 20, NULL, 30(모두 4행)일 때 결과는?\nSELECT AVG(point) FROM t;",
-      "options": ["20", "15", "NULL", "60"],
+      "options": [
+        "20",
+        "15",
+        "NULL",
+        "60"
+      ],
       "answer": 0,
       "explanation": "AVG는 NULL을 빼고 (10 + 20 + 30) ÷ 3 = 20이에요. 4로 나눈 15는 NULL을 0으로 본 계산이에요.",
       "tag": "NULL 집계"
@@ -232,7 +532,12 @@
     {
       "id": "U06-c4",
       "question": "표 t의 (a, b) 행이 (10, 5), (20, NULL), (NULL, 3)일 때 SUM(a + b)와 SUM(a) + SUM(b)의 값은 각각?",
-      "options": ["38, 38", "15, 15", "NULL, 38", "15, 38"],
+      "options": [
+        "38, 38",
+        "15, 15",
+        "NULL, 38",
+        "15, 38"
+      ],
       "answer": 3,
       "explanation": "a + b는 한쪽이 NULL이면 NULL이라 첫 행의 15만 더해져요. SUM(a) = 30, SUM(b) = 8이라 SUM(a) + SUM(b) = 38이에요.",
       "tag": "NULL 집계"
@@ -240,7 +545,12 @@
     {
       "id": "U06-c5",
       "question": "SELECT course_id, AVG(score) AS avg_score FROM enrollment GROUP BY course_id … 에서 SELECT의 별칭 avg_score를 SQLD 시험 기준으로 쓸 수 있는 절은?",
-      "options": ["WHERE", "GROUP BY", "HAVING", "ORDER BY"],
+      "options": [
+        "WHERE",
+        "GROUP BY",
+        "HAVING",
+        "ORDER BY"
+      ],
       "answer": 3,
       "explanation": "처리 순서가 FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY라서 SELECT에서 붙인 별칭은 그 뒤의 ORDER BY에서만 보여요. SQLite처럼 다른 절에서도 받아 주는 DBMS도 있지만 시험 기준은 ORDER BY예요.",
       "tag": "ORDER BY"
@@ -248,7 +558,12 @@
     {
       "id": "U06-c6",
       "question": "students 표의 grade 값이 3, 3, 2, 3, 1, 2(모두 6행)일 때 결과는 몇 행일까요?\nSELECT grade, COUNT(*) FROM students GROUP BY grade;",
-      "options": ["6행", "1행", "3행", "2행"],
+      "options": [
+        "6행",
+        "1행",
+        "3행",
+        "2행"
+      ],
       "answer": 2,
       "explanation": "GROUP BY grade는 서로 다른 학년 값 1, 2, 3마다 그룹을 하나씩 만들어요. 결과 행 수 = 그룹 수 = 3이에요.",
       "tag": "GROUP BY"
@@ -282,7 +597,12 @@
     {
       "id": "U06-c9",
       "question": "students의 (dept_id, grade) 6행이 (10,3), (10,3), (20,2), (20,3), (30,1), (10,2)일 때 결과는?\nSELECT dept_id, COUNT(*) FROM students WHERE grade = 3 GROUP BY dept_id HAVING COUNT(*) >= 2;",
-      "options": ["(10, 3)", "(10, 2)", "(10, 2), (20, 1)", "결과 행 없음"],
+      "options": [
+        "(10, 3)",
+        "(10, 2)",
+        "(10, 2), (20, 1)",
+        "결과 행 없음"
+      ],
       "answer": 1,
       "explanation": "WHERE가 먼저 3학년 3행만 남겨요(10번 학과 2명, 20번 학과 1명). 그다음 HAVING이 2명 이상인 학과만 남겨 (10, 2)예요. (10, 3)은 WHERE를 빼먹은 계산이에요.",
       "tag": "HAVING"
@@ -290,7 +610,12 @@
     {
       "id": "U06-c10",
       "question": "Oracle에서 score가 90, NULL, 70인 세 행을 ORDER BY score ASC로 정렬하면 순서는?",
-      "options": ["NULL, 70, 90", "90, 70, NULL", "70, 90, NULL", "70, 90 (NULL 행은 빠짐)"],
+      "options": [
+        "NULL, 70, 90",
+        "90, 70, NULL",
+        "70, 90, NULL",
+        "70, 90 (NULL 행은 빠짐)"
+      ],
       "answer": 2,
       "explanation": "Oracle은 NULL을 가장 큰 값처럼 다뤄 오름차순이면 맨 뒤에 둬요. SQL Server와 SQLite는 가장 작은 값처럼 다뤄 맨 앞에 둬요. 정렬은 행을 빼지 않아요.",
       "tag": "ORDER BY"
@@ -312,9 +637,18 @@
       ],
       "match": {
         "pairs": [
-          { "term": "GROUP BY course_id", "desc": "강좌 번호가 같은 수강 행끼리 한 묶음으로 모아요" },
-          { "term": "COUNT(*)", "desc": "묶음마다 행 개수를 세요(빈 점수 행도 셈)" },
-          { "term": "SUM(score)", "desc": "묶음마다 점수를 모두 더해요(빈 점수는 빼고)" }
+          {
+            "term": "GROUP BY course_id",
+            "desc": "강좌 번호가 같은 수강 행끼리 한 묶음으로 모아요"
+          },
+          {
+            "term": "COUNT(*)",
+            "desc": "묶음마다 행 개수를 세요(빈 점수 행도 셈)"
+          },
+          {
+            "term": "SUM(score)",
+            "desc": "묶음마다 점수를 모두 더해요(빈 점수는 빼고)"
+          }
         ],
         "distractor": "MAX(score)"
       }
@@ -334,9 +668,18 @@
       ],
       "match": {
         "pairs": [
-          { "term": "COUNT(score)", "desc": "점수가 채워진 행만 세요(101 그룹은 2)" },
-          { "term": "AVG(score)", "desc": "빈 점수를 빼고 평균을 내요(101 그룹은 90)" },
-          { "term": "COALESCE(score, 0)", "desc": "빈 점수를 0으로 바꿔 계산에 넣게 해요" }
+          {
+            "term": "COUNT(score)",
+            "desc": "점수가 채워진 행만 세요(101 그룹은 2)"
+          },
+          {
+            "term": "AVG(score)",
+            "desc": "빈 점수를 빼고 평균을 내요(101 그룹은 90)"
+          },
+          {
+            "term": "COALESCE(score, 0)",
+            "desc": "빈 점수를 0으로 바꿔 계산에 넣게 해요"
+          }
         ],
         "distractor": "COUNT(*)"
       }
@@ -356,9 +699,18 @@
       ],
       "match": {
         "pairs": [
-          { "term": "HAVING AVG(score) >= 80", "desc": "묶음을 만든 뒤 평균이 80 이상인 강좌 묶음만 남겨요" },
-          { "term": "GROUP BY course_id", "desc": "강좌 번호가 같은 행끼리 묶어요" },
-          { "term": "COUNT(*)", "desc": "남은 강좌 묶음의 행 개수를 세요" }
+          {
+            "term": "HAVING AVG(score) >= 80",
+            "desc": "묶음을 만든 뒤 평균이 80 이상인 강좌 묶음만 남겨요"
+          },
+          {
+            "term": "GROUP BY course_id",
+            "desc": "강좌 번호가 같은 행끼리 묶어요"
+          },
+          {
+            "term": "COUNT(*)",
+            "desc": "남은 강좌 묶음의 행 개수를 세요"
+          }
         ],
         "distractor": "WHERE score >= 80"
       }
@@ -378,12 +730,500 @@
       ],
       "match": {
         "pairs": [
-          { "term": "ORDER BY student_count DESC", "desc": "학생 수가 많은 학과부터 내려가며 정렬해요" },
-          { "term": "AVG(grade)", "desc": "학과마다 학년의 평균을 계산해요" },
-          { "term": "GROUP BY dept_id", "desc": "학과 번호가 같은 학생끼리 묶어요" }
+          {
+            "term": "ORDER BY student_count DESC",
+            "desc": "학생 수가 많은 학과부터 내려가며 정렬해요"
+          },
+          {
+            "term": "AVG(grade)",
+            "desc": "학과마다 학년의 평균을 계산해요"
+          },
+          {
+            "term": "GROUP BY dept_id",
+            "desc": "학과 번호가 같은 학생끼리 묶어요"
+          }
         ],
         "distractor": "HAVING COUNT(*) >= 2"
       }
+    }
+  ],
+  "mid": [
+    {
+      "id": "U06-m1",
+      "cards": [
+        "U06-t1",
+        "U06-t2",
+        "U06-t3"
+      ],
+      "bank": [
+        {
+          "id": "U06-m1-q1",
+          "card": "U06-t1",
+          "q": "GROUP BY 없이 SELECT SUM(score), MAX(score) FROM enrollment; 를 실행하면 결과는 몇 행일까요?",
+          "o": [
+            "1행",
+            "2행",
+            "5행",
+            "6행"
+          ],
+          "a": 0,
+          "exp": "GROUP BY가 없으면 표 전체가 한 묶음이라 집계 함수 결과는 1행이에요. 집계 함수를 두 개 써도 열만 늘고 행은 1개예요. 6행은 묶기 전 표의 행 수예요."
+        },
+        {
+          "id": "U06-m1-q2",
+          "card": "U06-t1",
+          "q": "점수가 60, 80, 100인 세 행에서 SUM(score)와 AVG(score)를 차례로 고르면?",
+          "o": [
+            "240, 60",
+            "80, 240",
+            "100, 80",
+            "240, 80"
+          ],
+          "a": 3,
+          "exp": "SUM은 60 + 80 + 100 = 240, AVG는 240 ÷ 3 = 80이에요. 100은 MAX, 60은 MIN의 결과라 헷갈리지 않게 해요."
+        },
+        {
+          "id": "U06-m1-q3",
+          "card": "U06-t1",
+          "q": "students 표에서 가장 높은 학년 값을 구하는 식은?",
+          "o": [
+            "MIN(grade)",
+            "SUM(grade)",
+            "MAX(grade)",
+            "COUNT(grade)"
+          ],
+          "a": 2,
+          "exp": "MAX는 가장 큰 값을 구해요. MIN은 가장 낮은 학년, SUM은 학년을 모두 더한 값, COUNT는 값이 몇 개인지를 구해요."
+        },
+        {
+          "id": "U06-m1-q4",
+          "card": "U06-t1",
+          "q": "숫자 열에만 쓰는 집계 함수는?",
+          "o": [
+            "COUNT",
+            "AVG",
+            "MIN",
+            "MAX"
+          ],
+          "a": 1,
+          "exp": "AVG(평균)는 값을 더해 개수로 나누므로 숫자 열에 써요. COUNT·MIN·MAX는 문자·날짜 열에도 써서 MIN(student_name)은 가나다순 첫 이름이에요."
+        },
+        {
+          "id": "U06-m1-q5",
+          "card": "U06-t1",
+          "q": "반 친구 5명의 줄넘기 기록 중 가장 적게 넘은 횟수를 알고 싶어요. 알맞은 집계 함수는?",
+          "o": [
+            "MIN",
+            "MAX",
+            "AVG",
+            "COUNT"
+          ],
+          "a": 0,
+          "exp": "가장 작은 값은 MIN으로 구해요. MAX는 가장 많이 넘은 횟수, AVG는 평균 횟수, COUNT는 기록이 몇 개인지를 구해요."
+        },
+        {
+          "id": "U06-m1-q6",
+          "card": "U06-t2",
+          "q": "같은 표에서 COUNT(*)와 COUNT(score)의 결과가 다르다면 그 까닭은?",
+          "o": [
+            "score에 같은 값이 여러 번 있기 때문",
+            "score가 문자 열이기 때문",
+            "표에 행이 하나도 없기 때문",
+            "score가 NULL인 행이 있기 때문"
+          ],
+          "a": 3,
+          "exp": "COUNT(*)는 모든 행을, COUNT(score)는 score가 NULL이 아닌 행만 세요. 둘이 다르면 NULL인 행이 있다는 뜻이에요. 같은 값이 겹치는 것은 COUNT(DISTINCT score)에서 차이를 만들어요."
+        },
+        {
+          "id": "U06-m1-q7",
+          "card": "U06-t2",
+          "q": "동아리 명단 30행 중 6행은 연락처(phone)가 비어 있어요(NULL). COUNT(*)와 COUNT(phone)을 차례로 고르면?",
+          "o": [
+            "24, 30",
+            "30, 30",
+            "30, 24",
+            "24, 24"
+          ],
+          "a": 2,
+          "exp": "COUNT(*)는 연락처가 비어 있어도 모든 행 30을 세요. COUNT(phone)은 NULL인 6행을 빼고 24를 세요. 둘을 바꿔 고르지 않게 조심해요."
+        },
+        {
+          "id": "U06-m1-q8",
+          "card": "U06-t2",
+          "q": "COUNT 함수에 대한 설명으로 옳지 않은 것은?",
+          "o": [
+            "COUNT(열)은 NULL이 아닌 값만 센다",
+            "COUNT(*)는 NULL이 있는 행을 세지 않는다",
+            "COUNT(DISTINCT 열)은 같은 값을 한 번만 센다",
+            "COUNT(열)은 COUNT(*)보다 작거나 같다"
+          ],
+          "a": 1,
+          "exp": "COUNT(*)는 값과 상관없이 행을 세서 NULL이 있는 행도 1개로 세요. NULL을 빼고 세는 것은 COUNT(열)이에요."
+        },
+        {
+          "id": "U06-m1-q9",
+          "card": "U06-t2",
+          "q": "students 표의 학과 번호(dept_id)가 10, 10, 20, 20, 30, 10일 때 COUNT(DISTINCT dept_id)는?",
+          "o": [
+            "2",
+            "3",
+            "4",
+            "6"
+          ],
+          "a": 1,
+          "exp": "같은 학과 번호는 한 번만 세서 10, 20, 30 세 개예요. 6은 COUNT(*)나 COUNT(dept_id)처럼 겹친 값까지 모두 센 결과예요."
+        },
+        {
+          "id": "U06-m1-q10",
+          "card": "U06-t2",
+          "q": "enrollment 표에서 한 강좌라도 수강한 학생 수를 구하려고 해요(한 학생이 여러 행일 수 있어요). 알맞은 식은?",
+          "o": [
+            "COUNT(*)",
+            "COUNT(student_id)",
+            "SUM(student_id)",
+            "COUNT(DISTINCT student_id)"
+          ],
+          "a": 3,
+          "exp": "한 학생이 여러 강좌를 들으면 행이 여러 개라 COUNT(*)·COUNT(student_id)는 같은 학생을 겹쳐 세요. COUNT(DISTINCT student_id)로 학생을 한 번씩만 세요."
+        },
+        {
+          "id": "U06-m1-q11",
+          "card": "U06-t3",
+          "q": "점수가 50, NULL, 70인 세 행에서 AVG(COALESCE(score, 0))는?",
+          "o": [
+            "60",
+            "NULL",
+            "40",
+            "120"
+          ],
+          "a": 2,
+          "exp": "COALESCE가 NULL을 0으로 바꿔 (50 + 0 + 70) ÷ 3 = 40이에요. 60은 NULL 행을 빼고 2로 나눈 AVG(score)의 값이에요."
+        },
+        {
+          "id": "U06-m1-q12",
+          "card": "U06-t3",
+          "q": "값이 모두 NULL인 열 bonus에 대해 SUM(bonus)와 COUNT(bonus)를 차례로 고르면?",
+          "o": [
+            "NULL, 0",
+            "0, 0",
+            "0, NULL",
+            "NULL, NULL"
+          ],
+          "a": 0,
+          "exp": "더할 값이 하나도 없어 SUM은 NULL이에요. COUNT(열)은 센 값이 없으니 0이에요. SUM도 0이 된다고 착각하기 쉬워요."
+        },
+        {
+          "id": "U06-m1-q13",
+          "card": "U06-t3",
+          "q": "집계 함수와 NULL에 대한 설명으로 옳은 것은?",
+          "o": [
+            "COUNT(*)를 뺀 집계 함수는 NULL을 빼고 계산한다",
+            "AVG는 NULL을 0으로 보고 계산한다",
+            "SUM은 NULL이 하나라도 있으면 NULL이다",
+            "MAX는 NULL을 가장 큰 값으로 본다"
+          ],
+          "a": 0,
+          "exp": "SUM·AVG·MIN·MAX·COUNT(열)은 NULL을 빼고 계산해요. 그래서 NULL이 섞여도 SUM은 나머지 값을 더해요. 행 안의 계산 NULL + 10이 NULL인 것과 헷갈리지 마세요."
+        },
+        {
+          "id": "U06-m1-q14",
+          "card": "U06-t3",
+          "q": "Oracle에서 bonus가 NULL인 행을 0으로 보고 합계를 내는 식은?",
+          "o": [
+            "SUM(ISNULL(bonus, 0))",
+            "NVL(SUM(bonus))",
+            "SUM(NULLIF(bonus, 0))",
+            "SUM(NVL(bonus, 0))"
+          ],
+          "a": 3,
+          "exp": "Oracle은 NVL(bonus, 0)로 NULL을 0으로 바꾼 뒤 더해요. ISNULL은 SQL Server의 함수이고, NULLIF는 오히려 0을 NULL로 바꾸는 함수예요."
+        },
+        {
+          "id": "U06-m1-q15",
+          "card": "U06-t3",
+          "q": "점수가 0, NULL, 50인 세 행에서 MIN(score)는?",
+          "o": [
+            "NULL",
+            "50",
+            "0",
+            "25"
+          ],
+          "a": 2,
+          "exp": "0은 '0점'이라는 값이라 계산에 들어가고, NULL만 빠져요. 그래서 MIN은 0이에요. NULL을 가장 작은 값으로 보지 않아요."
+        }
+      ]
+    },
+    {
+      "id": "U06-m2",
+      "cards": [
+        "U06-t4",
+        "U06-t5",
+        "U06-t6",
+        "U06-t7"
+      ],
+      "bank": [
+        {
+          "id": "U06-m2-q1",
+          "card": "U06-t4",
+          "q": "enrollment를 GROUP BY course_id로 묶었어요. 101 그룹의 점수가 90, 90, NULL일 때 이 그룹의 SUM(score)는?",
+          "o": [
+            "180",
+            "NULL",
+            "270",
+            "90"
+          ],
+          "a": 0,
+          "exp": "집계 함수는 그룹마다 따로 계산되고 NULL은 빼요. 101 그룹은 90 + 90 = 180이에요. NULL이 섞였다고 합계가 NULL이 되지는 않아요."
+        },
+        {
+          "id": "U06-m2-q2",
+          "card": "U06-t4",
+          "q": "GROUP BY에 대한 설명으로 옳은 것은?",
+          "o": [
+            "결과 행 수는 원래 표의 행 수와 같다",
+            "GROUP BY 열이 NULL인 행은 결과에서 버려진다",
+            "집계 함수는 표 전체에 대해 한 번만 계산된다",
+            "결과 행 수는 그룹 수와 같다"
+          ],
+          "a": 3,
+          "exp": "그룹마다 결과가 1행씩 나와 결과 행 수 = 그룹 수예요. GROUP BY 열이 NULL인 행들도 버려지지 않고 NULL 그룹 하나로 모여요."
+        },
+        {
+          "id": "U06-m2-q3",
+          "card": "U06-t4",
+          "q": "GROUP BY dept_id를 쓴 SELECT 문에서 SELECT 절에 함께 쓸 수 있는 것끼리 묶은 것은?",
+          "o": [
+            "student_name과 COUNT(*)",
+            "dept_id와 student_name",
+            "dept_id와 COUNT(*)",
+            "student_name과 grade"
+          ],
+          "a": 2,
+          "exp": "SELECT에는 GROUP BY에 쓴 열(dept_id)과 집계 함수만 써요. student_name은 한 그룹에 여러 값이 있어 무엇을 보여 줄지 정할 수 없어 Oracle·SQL Server에서 오류예요."
+        },
+        {
+          "id": "U06-m2-q4",
+          "card": "U06-t4",
+          "q": "편의점 판매 기록에서 '상품별 판매 건수'를 구하려고 해요. GROUP BY 뒤에 쓸 열로 알맞은 것은?",
+          "o": [
+            "판매 번호(sale_id)",
+            "상품 이름(product)",
+            "판매 시각(sold_at)",
+            "결제 금액(price)"
+          ],
+          "a": 1,
+          "exp": "'상품별'은 상품마다 한 묶음이라는 뜻이라 GROUP BY product로 묶고 COUNT(*)로 세요. 판매 번호처럼 행마다 다른 값으로 묶으면 행마다 그룹이 생겨 묶는 의미가 없어요."
+        },
+        {
+          "id": "U06-m2-q5",
+          "card": "U06-t4",
+          "q": "열 club의 값이 '축구', NULL, '축구', NULL, '농구'일 때 GROUP BY club으로 생기는 그룹은 몇 개일까요?",
+          "o": [
+            "2개",
+            "3개",
+            "4개",
+            "5개"
+          ],
+          "a": 1,
+          "exp": "NULL인 행들도 버려지지 않고 NULL 그룹 하나로 모여요. 그래서 '축구', '농구', NULL 세 그룹이에요. 2개는 NULL 행을 버렸다고 생각한 값이에요."
+        },
+        {
+          "id": "U06-m2-q6",
+          "card": "U06-t5",
+          "q": "WHERE에는 쓸 수 없고 HAVING에만 쓸 수 있는 조건은?",
+          "o": [
+            "grade = 3",
+            "student_name LIKE '가%'",
+            "dept_id IN (10, 20)",
+            "COUNT(*) >= 3"
+          ],
+          "a": 3,
+          "exp": "COUNT(*) >= 3은 묶은 뒤에야 계산되는 집계 조건이라 HAVING에만 써요. 나머지는 행 하나하나를 보는 조건이라 WHERE에 써요."
+        },
+        {
+          "id": "U06-m2-q7",
+          "card": "U06-t5",
+          "q": "enrollment의 강좌별 점수가 101은 90, 90, NULL이고 102는 80, 70, 80이에요. GROUP BY course_id HAVING MIN(score) >= 80 으로 남는 강좌는?",
+          "o": [
+            "102",
+            "101, 102",
+            "101",
+            "결과 행 없음"
+          ],
+          "a": 2,
+          "exp": "101 그룹의 최솟값은 NULL을 빼고 90, 102 그룹은 70이에요. MIN(score) >= 80을 만족하는 101만 남아요. NULL 때문에 101이 빠진다고 생각하기 쉬워요."
+        },
+        {
+          "id": "U06-m2-q8",
+          "card": "U06-t5",
+          "q": "'3학년 학생만' 학과별로 묶어 학생 수를 세려고 해요. '3학년만'이라는 조건은 어떻게 써야 할까요?",
+          "o": [
+            "WHERE grade = 3",
+            "HAVING COUNT(*) = 3",
+            "GROUP BY grade = 3",
+            "ORDER BY grade = 3"
+          ],
+          "a": 0,
+          "exp": "'3학년만'은 묶기 전에 행 하나하나를 거르는 행 조건이라 WHERE에 써요. HAVING COUNT(*) = 3은 학생이 3명인 학과를 고르는 전혀 다른 조건이에요."
+        },
+        {
+          "id": "U06-m2-q9",
+          "card": "U06-t5",
+          "q": "WHERE AVG(score) >= 80 처럼 쓰면 오류가 나는 까닭은?",
+          "o": [
+            "WHERE를 처리할 때는 아직 그룹이 없어서",
+            "AVG는 SELECT 절에만 쓸 수 있어서",
+            "80을 작은따옴표로 감싸지 않아서",
+            "WHERE에는 >= 연산자를 쓸 수 없어서"
+          ],
+          "a": 0,
+          "exp": "WHERE는 GROUP BY보다 먼저 행 단위로 처리돼요. 그때는 그룹이 없어 평균을 계산할 수 없으니 HAVING AVG(score) >= 80으로 써야 해요. AVG는 HAVING에도 쓸 수 있어요."
+        },
+        {
+          "id": "U06-m2-q10",
+          "card": "U06-t5",
+          "q": "enrollment의 (student_id, score)가 (1, 90), (1, 80), (2, 90), (3, NULL), (3, 70), (6, 80)일 때 다음 SQL의 결과로 남는 student_id는?",
+          "code": "SELECT student_id\nFROM enrollment\nWHERE score >= 80\nGROUP BY student_id\nHAVING COUNT(*) >= 2;",
+          "o": [
+            "1, 3",
+            "1, 2, 6",
+            "결과 행 없음",
+            "1"
+          ],
+          "a": 3,
+          "exp": "WHERE가 먼저 80점 이상 행만 남겨요(1번 2행, 2번·6번 1행씩). 그다음 HAVING이 2행 이상인 그룹만 남겨 1번이에요. 3번은 70점과 NULL이라 WHERE에서 모두 빠져요."
+        },
+        {
+          "id": "U06-m2-q11",
+          "card": "U06-t6",
+          "q": "ORDER BY score DESC 로 정렬한 결과의 순서는?",
+          "o": [
+            "작은 점수부터 큰 점수 순",
+            "행을 넣은 순서 그대로",
+            "큰 점수부터 작은 점수 순",
+            "점수를 글자로 본 가나다순"
+          ],
+          "a": 2,
+          "exp": "DESC는 내림차순이라 큰 값부터 보여 줘요. 작은 값부터는 ASC이고, ASC는 생략해도 기본으로 적용돼요."
+        },
+        {
+          "id": "U06-m2-q12",
+          "card": "U06-t6",
+          "q": "students의 (이름, 학년)이 가온 3, 나래 3, 다온 2, 라온 3, 마루 1, 바다 2일 때 ORDER BY grade, student_name 의 맨 앞 두 행은?",
+          "o": [
+            "마루, 바다",
+            "마루, 다온",
+            "가온, 나래",
+            "다온, 바다"
+          ],
+          "a": 1,
+          "exp": "방향을 생략하면 ASC라 학년이 낮은 마루(1학년)가 먼저예요. 다음 2학년 다온·바다는 다음 정렬 기준인 이름순이라 다온이 앞서요. 가온·나래는 DESC로 착각한 결과예요."
+        },
+        {
+          "id": "U06-m2-q13",
+          "card": "U06-t6",
+          "q": "ORDER BY 없이 SELECT 문을 실행했을 때 결과 행의 순서에 대한 설명으로 옳은 것은?",
+          "o": [
+            "순서가 보장되지 않는다",
+            "항상 기본 키 오름차순이다",
+            "항상 행을 넣은 순서 그대로다",
+            "항상 첫 열의 내림차순이다"
+          ],
+          "a": 0,
+          "exp": "ORDER BY가 없으면 DBMS가 편한 순서로 돌려줘서 순서가 보장되지 않아요. 지금 넣은 순서로 보여도 언제든 바뀔 수 있으니, 순서가 중요하면 ORDER BY를 써요."
+        },
+        {
+          "id": "U06-m2-q14",
+          "card": "U06-t6",
+          "q": "ORDER BY score ASC 로 정렬할 때 NULL을 맨 뒤에 두는 DBMS는?",
+          "o": [
+            "SQL Server",
+            "SQLite",
+            "SQL Server와 SQLite",
+            "Oracle"
+          ],
+          "a": 3,
+          "exp": "Oracle은 NULL을 가장 큰 값처럼 다뤄 오름차순이면 맨 뒤에 둬요. SQL Server·SQLite는 가장 작은 값처럼 다뤄 오름차순이면 맨 앞에 둬요."
+        },
+        {
+          "id": "U06-m2-q15",
+          "card": "U06-t6",
+          "q": "SELECT student_name, grade FROM students ORDER BY 2 DESC; 에서 2가 뜻하는 것은?",
+          "o": [
+            "2학년인 학생만 고르라는 뜻",
+            "앞에서 두 행만 보여 달라는 뜻",
+            "SELECT 목록의 2번째 열인 grade",
+            "student_name의 2번째 글자"
+          ],
+          "a": 2,
+          "exp": "ORDER BY 뒤의 숫자는 SELECT 목록에서 몇 번째 열인지를 뜻하는 열 순번이에요. 그래서 grade가 큰 순으로 정렬해요. 행을 거르거나 개수를 자르지 않아요."
+        },
+        {
+          "id": "U06-m2-q16",
+          "card": "U06-t7",
+          "q": "SELECT 문의 실행(처리) 순서로 옳은 것은?",
+          "o": [
+            "SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY",
+            "FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY",
+            "FROM → WHERE → SELECT → GROUP BY → HAVING → ORDER BY",
+            "FROM → GROUP BY → WHERE → HAVING → SELECT → ORDER BY"
+          ],
+          "a": 1,
+          "exp": "표를 가져오고(FROM) 행을 거른 뒤(WHERE) 묶고(GROUP BY) 그룹을 거르고(HAVING) 열을 계산해(SELECT) 정렬(ORDER BY)해요. SELECT로 시작하는 순서는 작성 순서예요."
+        },
+        {
+          "id": "U06-m2-q17",
+          "card": "U06-t7",
+          "q": "작성 순서에서 HAVING 바로 다음에 쓰는 절은?",
+          "o": [
+            "ORDER BY",
+            "SELECT",
+            "GROUP BY",
+            "WHERE"
+          ],
+          "a": 0,
+          "exp": "작성 순서는 SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY라 HAVING 다음은 ORDER BY예요. 실행 순서에서는 HAVING 다음이 SELECT라 헷갈리기 쉬워요."
+        },
+        {
+          "id": "U06-m2-q18",
+          "card": "U06-t7",
+          "q": "SELECT에서 붙인 별칭을 ORDER BY에서는 쓸 수 있지만 WHERE에서는 쓸 수 없다고 배우는 까닭은?",
+          "o": [
+            "ORDER BY가 FROM보다 먼저 처리되기 때문",
+            "WHERE에는 숫자만 쓸 수 있기 때문",
+            "별칭은 한 번만 쓸 수 있기 때문",
+            "WHERE가 SELECT보다 먼저 처리되기 때문"
+          ],
+          "a": 3,
+          "exp": "실행 순서에서 WHERE는 SELECT보다 먼저라 그때는 별칭이 아직 없어요. ORDER BY는 SELECT 다음에 처리되어 별칭을 알아볼 수 있어요. FROM은 가장 먼저 처리돼요."
+        },
+        {
+          "id": "U06-m2-q19",
+          "card": "U06-t7",
+          "q": "'2학년 이상만 골라, 학과별로 묶고, 학생이 2명 이상인 학과만, 학과 번호 순으로' 보려고 해요. 이 일들의 실행 순서로 옳은 것은?",
+          "o": [
+            "묶기 → 행 거르기 → 그룹 거르기 → 정렬",
+            "행 거르기 → 그룹 거르기 → 묶기 → 정렬",
+            "행 거르기 → 묶기 → 그룹 거르기 → 정렬",
+            "정렬 → 행 거르기 → 묶기 → 그룹 거르기"
+          ],
+          "a": 2,
+          "exp": "WHERE(행 거르기)가 먼저, 다음 GROUP BY(묶기), HAVING(그룹 거르기)이고 ORDER BY(정렬)는 마지막이에요. 그룹을 거르려면 먼저 묶여 있어야 해요."
+        },
+        {
+          "id": "U06-m2-q20",
+          "card": "U06-t7",
+          "q": "SQL 절의 순서에 대한 설명으로 옳지 않은 것은?",
+          "o": [
+            "작성 순서에서 SELECT는 맨 앞에 쓴다",
+            "실행 순서에서 SELECT는 맨 처음 처리된다",
+            "ORDER BY는 작성·실행 모두 맨 끝이다",
+            "HAVING은 GROUP BY 다음에 처리된다"
+          ],
+          "a": 1,
+          "exp": "실행 순서에서 SELECT는 HAVING 다음, 다섯 번째로 처리돼요. 맨 처음 처리되는 절은 FROM이에요. SELECT를 맨 앞에 두는 것은 작성 순서예요."
+        }
+      ]
     }
   ]
 }
