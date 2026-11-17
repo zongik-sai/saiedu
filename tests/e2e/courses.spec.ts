@@ -3,13 +3,15 @@ import { expect, test, type Page } from '@playwright/test';
 import { buildNewCourse } from '../../src/features/computer/courses/build';
 import { NEW_COURSES, type NewCourseId } from '../../src/features/computer/courses/defs';
 import { buildMock } from '../../src/features/computer/mock';
+import { solveMatch } from './concepts';
 
 /**
  * 컴퓨터 일반과 같은 엔진을 쓰는 새 과목(네트워크·프로그래밍·Data): 로그인 없이 둘러보기(이 기기에만 저장).
  * 정답·카드 제목은 테스트할 때 과목 원본(courses/<과목>/U1~U<n>.json)에서 읽는다.
  * 원본을 다른 작업이 아직 쓰는 중이면(빈 단원) 그 단원 검사는 "내용 없음"으로 실패한다.
  */
-interface RawCard { id: string; title: string; code?: string; match?: { pairs: { term: string; desc: string }[]; distractor: string } }
+/** 원본 카드(개념 맞추기는 예전 형식·새 형식 모두: 정답은 앱 형태로 바꾼 과목에서 읽는다) */
+interface RawCard { id: string; title: string; code?: string; match?: unknown }
 const rawUnit = (c: NewCourseId, n: number) => JSON.parse(readFileSync(`src/features/computer/courses/${c}/U${n}.json`, 'utf8')) as { title: string; theory: RawCard[] };
 /** 정규 과목(네트워크·프로그래밍 8단원, Data 11단원). 기초 다듬기(10단원, 10문항 실력점검)는 basics.spec.ts */
 const MAIN_COURSES = NEW_COURSES.filter((c) => (c.group ?? 'main') === 'main');
@@ -53,7 +55,7 @@ for (const def of MAIN_COURSES) {
   test(`${def.name}: 과목 홈 → 1단원 집중 학습 → 첫 카드 개념 맞추기 → 모의고사 1회 50문항`, async ({ page }) => {
     const u1 = rawUnit(def.id, 1);
     expect(u1.theory.length, `${def.id}/U1.json 내용이 아직 없음(다른 작업이 쓰는 중)`).toBeGreaterThan(0);
-    const card = u1.theory[0];
+    const card = loadCourse(def.id).units[0].cards[0];
     expect(card.match, `${def.id}-U1-t1 개념 맞추기 없음`).toBeTruthy();
 
     await fresh(page, def.path);
@@ -80,12 +82,10 @@ for (const def of MAIN_COURSES) {
     // 1단계: 첫 카드 읽기 → 개념 맞추기 → 1번 카드 완료
     await page.goto(`./#${def.path}/unit/U1/1`);
     await expect(page.locator('.cg-card-dot')).toHaveCount(u1.theory.length);
-    await expect(page.locator('.cg-card h2')).toContainText(card.title.replace(/^\[확장\]\s*/, ''));
+    await expect(page.locator('.cg-card h2')).toContainText(card.title);
     await page.getByRole('button', { name: '다 읽었어요 → 개념 맞추기' }).click();
-    const row = (desc: string) => page.locator('.cg-match-rows li').filter({ has: page.locator('.cg-match-desc', { hasText: desc }) });
-    await expect(page.locator('.cg-match-rows li')).toHaveCount(3);
-    for (const p of card.match!.pairs) await row(p.desc).getByRole('button', { name: p.term, exact: true }).click();
-    await page.getByRole('button', { name: '확인' }).click();
+    // 예전 형식(뜻 3개 + 함정 1개)·새 형식(뜻 5개 + 난이도별 함정) 모두 같은 화면
+    await solveMatch(page, card.match!);
     await expect(page.getByText(`1번 카드 완료! (1/${u1.theory.length})`)).toBeVisible();
     // 이 과목 키에만 저장(컴퓨터 일반 기록과 섞이지 않음)
     const saved = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}'), `sqlforest:v1:guest:${def.id}:state`);
