@@ -880,11 +880,11 @@
           "o": [
             "COUNT(*)",
             "COUNT(student_id)",
-            "SUM(student_id)",
+            "COUNT(DISTINCT course_id)",
             "COUNT(DISTINCT student_id)"
           ],
           "a": 3,
-          "exp": "한 학생이 여러 강좌를 들으면 행이 여러 개라 COUNT(*)·COUNT(student_id)는 같은 학생을 겹쳐 세요. COUNT(DISTINCT student_id)로 학생을 한 번씩만 세요."
+          "exp": "한 학생이 여러 강좌를 들으면 행이 여러 개라 COUNT(*)·COUNT(student_id)는 같은 학생을 겹쳐 세요. COUNT(DISTINCT student_id)로 학생을 한 번씩만 세요. COUNT(DISTINCT course_id)는 수강된 강좌 수예요."
         },
         {
           "id": "U06-m1-q11",

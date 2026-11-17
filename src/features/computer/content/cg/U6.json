@@ -293,7 +293,7 @@
       "distractors": [
         "DHCP",
         "포트 번호",
-        "네트워크 주소"
+        "패킷"
       ]
     },
     "U6-t11": {
@@ -1268,11 +1268,11 @@
           "o": [
             "nslookup",
             "ipconfig /renew",
-            "tracert",
+            "ipconfig /release",
             "ping 127.0.0.1"
           ],
           "a": 1,
-          "exp": "169.254.x.x는 DHCP로 주소를 받지 못해 붙은 APIPA 주소이다. ipconfig /renew는 DHCP 서버에 주소를 다시 요청한다. ping 127.0.0.1은 내 PC의 TCP/IP 기능만 점검할 뿐 새 주소를 받아 오지는 않는다."
+          "exp": "169.254.x.x는 DHCP로 주소를 받지 못해 붙은 APIPA 주소이다. ipconfig /renew는 DHCP 서버에 주소를 다시 요청한다. ipconfig /release는 받은 주소를 반납할 뿐이고, ping 127.0.0.1은 내 PC의 TCP/IP 기능만 점검한다."
         }
       ]
     }
