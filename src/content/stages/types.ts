@@ -1,16 +1,18 @@
+import type { CardMatchData, LegacyMatch, MidGroup } from '../../lib/concepts';
 import type { DatasetId, UnitId } from '../types';
 
 /**
  * 데이터베이스 단원 단계 콘텐츠(2026-10-15 구조 개편).
- * 1단계 이론·개념 맞추기(cards) · 2단계 개념 점검 문제(quiz) · 3단계 실습 설명·실습 맞추기(practice) · 4단계 실습 점검(기존 활동·체크포인트)
- * 단원별 JSON(src/content/stages/Uxx.json)에 보관하며 ID는 'U01-t1'·'U01-c1'·'U01-p1'처럼 안정적으로 둔다.
+ * 1단계 이론·개념 맞추기(cards, 카드 3장마다 중간점검 mids) · 2단계 개념 점검 문제(quiz) · 3단계 실습 설명·실습 맞추기(practice) · 4단계 실습 점검(기존 활동·체크포인트)
+ * 단원별 JSON(src/content/stages/Uxx.json)에 보관하며 ID는 'U01-t1'·'U01-c1'·'U01-p1'·'U01-m1'(-q1)처럼 안정적으로 둔다.
+ * 원본 JSON은 index.ts가 앱 형태로 바꾼다(개념 맞추기 새·예전 형식 → CardMatchData, mid → mids).
  */
-export interface StageMatch {
-  /** 뜻 3개 ↔ 용어 3개 */
-  pairs: { term: string; desc: string }[];
-  /** 헷갈리게 넣는 용어 1개 */
-  distractor: string;
-}
+
+/** 3단계 실습 맞추기: SQL 조각 3개 ↔ 역할 + 함정 1개(예전 형식 그대로) */
+export type StageMatch = LegacyMatch;
+
+/** 1단계 카드의 개념 맞추기(앱 형태): 새 형식 뜻 5개 + 난이도별 함정, 예전 형식 뜻 3개 + 함정 1개(level 없음) */
+export type StageCardMatch = CardMatchData;
 
 export interface StageTable {
   header: string[];
@@ -23,7 +25,8 @@ export interface StageCard {
   points: string[];
   table?: StageTable;
   tip?: string;
-  match: StageMatch;
+  /** 원본이 깨졌거나 쓰는 중이면 없음('다 읽었어요'만) */
+  match?: StageCardMatch;
 }
 
 export interface StageQuiz {
@@ -36,6 +39,21 @@ export interface StageQuiz {
   /** 개념 이름(오답 복습 묶음용) */
   tag: string;
 }
+
+/** 중간점검 문항(1단계, 묶음 문제은행). 객관식 공통 모양 + 다루는 카드 */
+export interface StageMidQuiz {
+  id: string;
+  question: string;
+  code?: string;
+  options: string[];
+  answer: number;
+  explanation: string;
+  /** 다루는 카드 ID('U01-t2') */
+  card?: string;
+}
+
+/** 중간점검 묶음: 'U01-m1', 카드 3장(남으면 2·4장), 문제은행 */
+export type StageMidGroup = MidGroup<StageMidQuiz>;
 
 export interface PracticeItem {
   id: string;
@@ -57,4 +75,6 @@ export interface UnitStages {
   cards: StageCard[];
   quiz: StageQuiz[];
   practice: PracticeItem[];
+  /** 카드 3장마다 중간점검(원본에 mid가 아직 없는 단원은 빈 배열 → 예전처럼 카드만으로 1단계 통과) */
+  mids: StageMidGroup[];
 }
