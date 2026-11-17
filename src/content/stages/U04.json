@@ -460,7 +460,7 @@
           },
           {
             "term": "NOT EXISTS",
-            "desc": "괄호 안 SELECT 결과가 한 행도 없으면 참이 되는 조건"
+            "desc": "괄호 안 SELECT 결과가 한 행도 없으면 참이라 빈 값 함정을 피하는 조건"
           },
           {
             "term": "WHERE",
