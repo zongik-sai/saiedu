@@ -10,7 +10,7 @@ import { QuestionCard } from '../learning/QuestionCard';
 import { useFocusGate } from '../focus/FocusContext';
 import {
   allUnitsComplete, answerQuestion, checkpointSolved, courseComplete, finalComplete, finalUnlocked, isActivityComplete, isUnitComplete,
-  nextStep, unitCheckpointScore, unitStageLevel, unitStatus, unsolvedCheckpoints, viewExplanation,
+  midQuestionUnit, nextStep, unitCheckpointScore, unitStageLevel, unitStatus, unsolvedCheckpoints, viewExplanation,
 } from './model';
 import { BADGES } from './rewards';
 import { buildReport, downloadText, reportCsv } from './report';
@@ -285,9 +285,12 @@ export function ReviewPage() {
     const q = QUESTION_BY_ID[id];
     if (q?.unitId) return `/learn/${q.unitId}/checkpoint`;
     if (id.startsWith('CH-')) return `/challenge/${id}`;
+    // 1단계 중간점검에서 틀린 문항: 그 단원 1단계(카드 다시 보기·중간점검)로
+    const mu = midQuestionUnit(id);
+    if (mu) return `/learn/${mu}/stage/1`;
     return null;
   };
-  const label = (id: string) => ACTIVITY_BY_ID[id]?.title ?? QUESTION_BY_ID[id]?.prompt.slice(0, 40) ?? id;
+  const label = (id: string) => ACTIVITY_BY_ID[id]?.title ?? QUESTION_BY_ID[id]?.prompt.slice(0, 40) ?? (midQuestionUnit(id) ? `${midQuestionUnit(id)} 1단계 중간점검 문항` : id);
   return (
     <div className="page page-narrow stack">
       <h1>오답 복습</h1>

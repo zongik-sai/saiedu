@@ -1694,12 +1694,12 @@
         {
           "id": "m2-q2",
           "card": "t4",
-          "q": "한글 Windows 엑셀에서 저장한 CSV를 옵션 없이 읽었더니 UnicodeDecodeError가 났다. 알맞은 코드는?",
+          "q": "집에서 한글 Windows 엑셀로 저장한 '가계부.csv'를 옵션 없이 읽었더니 UnicodeDecodeError가 났다. 알맞은 코드는?",
           "o": [
-            "pd.read_csv('a.csv', sep='cp949')",
-            "pd.read_csv('a.csv', encoding='cp949')",
-            "pd.read_csv('a.csv', encoding='utf-8')",
-            "pd.read_csv('a.csv', header='cp949')"
+            "pd.read_csv('가계부.csv', sep='cp949')",
+            "pd.read_csv('가계부.csv', encoding='cp949')",
+            "pd.read_csv('가계부.csv', encoding='utf-8')",
+            "pd.read_csv('가계부.csv', header='cp949')"
           ],
           "a": 1,
           "exp": "UnicodeDecodeError는 글자 저장 방식이 맞지 않아 나는 오류이므로 encoding을 고친다. 한글 엑셀 CSV는 cp949인 경우가 많다. 'utf-8'은 read_csv의 기본값이라 다시 줘도 같은 오류가 난다."

@@ -83,7 +83,7 @@ function StagePageInner() {
     <div className="page stack" style={{ maxWidth: 900, margin: '0 auto' }}>
       <div className="learn-head">
         <StageCrumbs unitId={unitId} here={`${n}단계`} />
-        <StageStatus unitId={unitId} n={n} />
+        <StageStatus unitId={unitId} n={n} midIds={n === 1 ? UNIT_STAGES[unitId].mids.map((g) => g.id) : undefined} />
       </div>
       <h1 style={{ margin: 0, fontSize: '1.5rem' }}>{n}단계 {STAGE_NAME[n]}</h1>
       {!open && !force ? <StageLock unitId={unitId} n={n} onForce={() => setForce(true)} /> :
