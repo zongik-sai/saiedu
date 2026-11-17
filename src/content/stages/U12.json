@@ -791,10 +791,10 @@
             "student_id",
             "course_id",
             "student_id + course_id",
-            "score"
+            "course_id + score"
           ],
           "a": 2,
-          "exp": "한 학생이 여러 캠프를, 한 캠프에 여러 학생이 있으니 학번만이나 캠프 번호만으로는 행이 겹쳐요. 두 키를 함께 묶은 student_id + course_id가 한 수강 행을 구별해요."
+          "exp": "한 학생이 여러 캠프를, 한 캠프에 여러 학생이 있으니 학번만이나 캠프 번호만으로는 행이 겹쳐요. course_id + score도 SQL캠프 90점(가온·나래)처럼 겹칠 수 있어요. student_id + course_id가 한 수강 행을 구별해요."
         },
         {
           "id": "U12-m1-q4",
@@ -1023,7 +1023,7 @@
             "학과마다 딱 한 행씩만 나온다",
             "학생 행이 전체 학과 수만큼 반복된다",
             "학생이 없는 학과도 한 행씩 남는다",
-            "학과 행이 그 학과 학생 수만큼 반복되어 나온다"
+            "학과 행이 그 학과 학생 수만큼 반복된다"
           ],
           "a": 3,
           "exp": "1:N으로 조인하면 '1' 쪽인 학과 행이 짝(학생) 수만큼 늘어나요. 예를 들어 AI컴퓨터는 학생이 3명이라 3번 나와요. 학생 없는 학과가 남으려면 LEFT JOIN이 필요해요."
@@ -1057,7 +1057,7 @@
         {
           "id": "U12-m2-q8",
           "card": "U12-t5",
-          "q": "학생 6명 중 라온·마루만 수강 기록이 없고, 가온·다온은 2건씩 들었어요. students s WHERE EXISTS (SELECT 1 FROM enrollment e WHERE e.student_id = s.student_id)로 거르면 몇 명이 남을까요?",
+          "q": "학생 6명 중 라온·마루만 수강 기록이 없고, 가온·다온은 2건씩 들었어요. SELECT * FROM students s WHERE EXISTS (SELECT 1 FROM enrollment e WHERE e.student_id = s.student_id)의 결과는 몇 명일까요?",
           "o": [
             "6명",
             "2명",
