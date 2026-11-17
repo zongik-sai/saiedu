@@ -80,7 +80,8 @@ export function CardMatch({ id, match, onDone, title = '개념 맞추기', help 
       return;
     }
     setSel(wrong[0]);
-    setSay(`${wrong.length}개가 틀렸어요. 틀린 줄의 용어를 바꾸고 확인을 누르세요.`);
+    // 틀린 수는 확인 버튼 옆 글(aria-live)이 알린다
+    setSay('');
   };
 
   const wrongN = rows.filter((_, i) => checked[i] === false).length;
@@ -143,7 +144,7 @@ export function CardMatch({ id, match, onDone, title = '개념 맞추기', help 
       {!allOk && (
         <div className="row">
           <button className="btn btn-primary" disabled={!filled} onClick={check}>확인</button>
-          {wrongN > 0 && <span className="small muted">{wrongN}개가 틀렸어요. 틀린 줄만 다시 고르고 확인을 누르세요.</span>}
+          <span className="small muted" aria-live="polite">{wrongN > 0 ? `${wrongN}개가 틀렸어요. 틀린 줄만 다시 고르고 확인을 누르세요.` : ''}</span>
         </div>
       )}
       <p className="sr-only" aria-live="polite">{say}</p>

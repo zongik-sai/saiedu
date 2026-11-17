@@ -392,7 +392,14 @@ test('휴대폰 너비(390px): 어려운 개념 맞추기(보기 10개)와 중�
   await page.setViewportSize({ width: 390, height: 844 });
   const hard = U1.cards.findIndex((c) => c.match?.level === 'hard');
   test.skip(hard < 0 || !U1.mids.length, '컴퓨터 일반 1단원 새 형식 콘텐츠가 아직 없음');
-  await fresh(page, `/computer/unit/${U1.id}/1`);
+  // 묶음 1의 카드를 마친 상태(중간점검 풀 차례)로 연다
+  await page.goto('./');
+  await page.evaluate(([k, ids]) => {
+    localStorage.clear();
+    localStorage.setItem(k, JSON.stringify({ v: 1, upd: '', units: {}, mock: [], wrong: {}, locks: {}, resets: {}, cards: Object.fromEntries((ids as string[]).map((id) => [id, '2026-11-17T00:00:00.000Z'])) }));
+  }, [GUEST_STATE, U1.mids[0].cards] as const);
+  await page.goto('about:blank');
+  await page.goto(`./#/computer/unit/${U1.id}/1`);
   await startUnit(page);
   await page.locator('.cg-card-nav').getByRole('button', { name: new RegExp(`^${hard + 1}번 카드`) }).click();
   await page.getByRole('button', { name: '다 읽었어요 → 개념 맞추기' }).click();
@@ -404,14 +411,6 @@ test('휴대폰 너비(390px): 어려운 개념 맞추기(보기 10개)와 중�
   expect(await overflow(), '개념 맞추기').toBeLessThanOrEqual(1);
   // 누를 곳은 40px 이상
   for (const b of await page.locator('.cg-match-bank button, .cg-slot, .cg-match-desc').all()) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(40);
-  // 중간점검: 묶음 1 카드를 마친 상태로 열기
-  await page.evaluate(([k, ids]) => {
-    const s = JSON.parse(localStorage.getItem(k) ?? '{}');
-    s.cards = Object.fromEntries((ids as string[]).map((id) => [id, '2026-11-17T00:00:00.000Z']));
-    localStorage.setItem(k, JSON.stringify(s));
-  }, [GUEST_STATE, U1.mids[0].cards] as const);
-  await page.reload();
-  await startUnit(page);
   await page.locator('.cg-card-nav').getByRole('button', { name: /^중간점검 1 · / }).click();
   await answerMid(page, U1.mids[0].bank, false);
   await expect(page.locator('.cg-mid .notice-warn')).toBeVisible();
