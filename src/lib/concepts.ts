@@ -235,7 +235,7 @@ export function startMidRun(group: string, bank: readonly { id: string; options:
  * 지금 문항(queue 맨 앞)에 답함. 맞히면 solved로, 틀리면 맨 뒤로 보내고 보기 순서를 다시 섞는다.
  * 다른 문항 ID거나 이미 끝났으면 그대로 돌려준다(두 번 누름 방지).
  */
-export function answerMidRun(run: MidRun, qid: string, correct: boolean, nOptions: number, rng: () => number = Math.random): MidRun {
+export function answerMidRun(run: MidRun, qid: string, correct: boolean, nOptions: number = run.orders[qid]?.length ?? 4, rng: () => number = Math.random): MidRun {
   if (run.queue[0] !== qid) return run;
   const rest = run.queue.slice(1);
   if (correct) return { ...run, queue: rest, solved: [...run.solved, qid] };
