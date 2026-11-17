@@ -4,7 +4,7 @@ import { learnerPrefix, readJson, removeRaw, writeJson } from '../../../lib/stor
 import { useAuth } from '../../auth/AuthContext';
 import { useCourse } from '../course';
 import { buildMock, FIXED_SETS, fixedSetCount, mockOptionsOf, type FixedSet } from '../mock';
-import { activeWrongIds, addMock, isRegularMock, MOCK_LABEL, noteAnswer, scoreMock, WRONG_MOCK_MIN, type MockKind, type MockRecord } from '../model';
+import { addMock, mockWrongIds, isRegularMock, MOCK_LABEL, noteAnswer, scoreMock, WRONG_MOCK_MIN, type MockKind, type MockRecord } from '../model';
 import { CodeBlock, MARK, ReviewCard } from '../McqRunner';
 import { useCg } from '../store';
 import type { CgMcq } from '../types';
@@ -43,7 +43,8 @@ export function MockHubPage() {
   const [, setTick] = useState(0);
   const curKey = `${prefix}${course.storage}:mock:current`;
   const current = readJson<ExamState | null>(curKey, null);
-  const wrongN = activeWrongIds(cg.state).length;
+  // 오답 모의고사는 기초·실력점검 오답만(중간점검 문항은 오답노트에만 모인다)
+  const wrongN = mockWrongIds(cg.state).length;
   const hist = [...cg.state.mock].reverse();
   const best = (k: MockKind) => cg.state.mock.filter((m) => m.kind === k).reduce((b, m) => Math.max(b, m.score), -1);
   return (
@@ -140,7 +141,7 @@ function Exam({ kind }: { kind: MockKind }) {
   const [exam, setExam] = useState<ExamState | null>(() => {
     const saved = readJson<ExamState | null>(key, null);
     if (saved && saved.kind === kind && saved.orders && Array.isArray(saved.ids) && saved.ids.length && saved.ids.every((id) => mcqById(id))) return saved;
-    const wrongIds = activeWrongIds(cg.state);
+    const wrongIds = mockWrongIds(cg.state);
     if (kind === 'wrong' && wrongIds.length < WRONG_MOCK_MIN) return null;
     const paper = buildMock(course.units, kind, { ...mockOptionsOf(course), wrongIds });
     if (!paper.items.length) return null;

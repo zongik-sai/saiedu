@@ -851,7 +851,7 @@
         {
           "id": "U12-m1-q8",
           "card": "U12-t2",
-          "q": "enrollment의 score 6개 중 비어 있는 것은 다온의 SQL캠프 1개뿐이에요. SELECT COUNT(*) FROM enrollment WHERE score IS NOT NULL; 의 결과는?",
+          "q": "enrollment의 점수는 90, 80, 90, NULL, 70, 80이에요. SELECT COUNT(*) FROM enrollment WHERE score IS NOT NULL; 은 얼마를 돌려줄까요?",
           "o": [
             "6",
             "1",
@@ -966,7 +966,7 @@
         {
           "id": "U12-m2-q1",
           "card": "U12-t4",
-          "q": "수강 건수는 가온 2, 나래 1, 다온 2(그중 1건은 점수 NULL), 바다 1, 라온 0, 마루 0이에요. students s INNER JOIN enrollment e ON e.student_id = s.student_id 결과에 나오지 않는 학생은?",
+          "q": "라온·마루는 수강 기록이 없고, 다온은 점수가 빈 기록이 1건 있어요. students s INNER JOIN enrollment e ON e.student_id = s.student_id 결과에 한 번도 나오지 않는 학생은?",
           "o": [
             "가온",
             "다온",
@@ -979,7 +979,7 @@
         {
           "id": "U12-m2-q2",
           "card": "U12-t4",
-          "q": "students LEFT JOIN enrollment ON e.student_id = s.student_id 결과에서, 수강 기록이 없는 마루의 행의 course_id 칸은?",
+          "q": "students s LEFT JOIN enrollment e ON e.student_id = s.student_id 결과에서, 수강 기록이 없는 마루 행의 e.course_id 칸은?",
           "o": [
             "NULL",
             "0",
@@ -1057,7 +1057,7 @@
         {
           "id": "U12-m2-q8",
           "card": "U12-t5",
-          "q": "수강 기록은 가온 2건, 나래 1건, 다온 2건, 바다 1건이고 라온·마루는 없어요. students s WHERE EXISTS (SELECT 1 FROM enrollment e WHERE e.student_id = s.student_id)의 결과는 몇 명일까요?",
+          "q": "학생 6명 중 라온·마루만 수강 기록이 없고, 가온·다온은 2건씩 들었어요. students s WHERE EXISTS (SELECT 1 FROM enrollment e WHERE e.student_id = s.student_id)로 거르면 몇 명이 남을까요?",
           "o": [
             "6명",
             "2명",

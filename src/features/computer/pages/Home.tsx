@@ -4,7 +4,7 @@ import { isSupabaseConfigured } from '../../../lib/config';
 import { useAuth } from '../../auth/AuthContext';
 import { unitHasContent, useCourse, type CourseId } from '../course';
 import { NEW_COURSES } from '../courses/defs';
-import { activeWrongIds, bestRegularMock, isPassed, nextPlantGoal, passedCount, plantStage, plantThresholds, unitLevel } from '../model';
+import { activeWrongIds, bestRegularMock, isPassed, level1Progress, nextPlantGoal, passedCount, plantStage, plantThresholds, unitLevel } from '../model';
 import { selfCheckLine } from '../selfCheck';
 import { useCg } from '../store';
 import { CG_LEVELS, CG_LEVEL_NAME } from '../types';
@@ -109,6 +109,9 @@ export function CgHome() {
           {course.units.map((u, i) => {
             const lv = unitLevel(s, u.id);
             const nextLv = CG_LEVELS.find((l) => !isPassed(s, u.id, l));
+            // 1단계 차례면 무엇이 남았는지(카드·중간점검)
+            const p1 = level1Progress(s, u);
+            const lv1Left = nextLv === 1 && (p1.midsTotal > 0 || p1.cards > 0) ? `(카드 ${p1.cards}/${p1.cardsTotal}${p1.midsTotal ? ` · 중간점검 ${p1.mids}/${p1.midsTotal}` : ''})` : '';
             // 이 단원 문항이 가장 많이 속한 영역(최대 2개)
             const cnt = new Map<string, number>();
             for (const q of [...u.basic, ...u.check]) cnt.set(q.area, (cnt.get(q.area) ?? 0) + 1);
@@ -124,7 +127,7 @@ export function CgHome() {
                     ))}
                   </span>
                   <span className="small muted">
-                    {unitHasContent(u) ? <>레벨 {lv}/5{nextLv ? ` · 다음: ${CG_LEVEL_NAME[nextLv]}` : course.selfCheck ? ' · 모두 마침' : ' · 모두 통과'}</> : '내용 준비 중'}
+                    {unitHasContent(u) ? <>레벨 {lv}/5{nextLv ? ` · 다음: ${CG_LEVEL_NAME[nextLv]}${lv1Left}` : course.selfCheck ? ' · 모두 마침' : ' · 모두 통과'}</> : '내용 준비 중'}
                     {course.id !== 'cg' && areas.length > 0 && ` · ${areas.join(', ')}`}
                   </span>
                   {course.selfCheck && unitHasContent(u) && (

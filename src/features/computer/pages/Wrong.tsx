@@ -5,6 +5,8 @@ import { useAuth } from '../../auth/AuthContext';
 import { useCourse } from '../course';
 import { McqRunner, ReviewCard } from '../McqRunner';
 import { activeWrongIds, noteAnswer, WRONG_MOCK_MIN } from '../model';
+
+const SET_LABEL = { basic: '기초', check: '실력점검', mid: '중간점검' } as const;
 import { useCg } from '../store';
 import { type CgMcq, type CgUnitId } from '../types';
 
@@ -22,6 +24,8 @@ export function WrongNotePage() {
   const [done, setDone] = useState<{ score: number; total: number } | null>(null);
   const shown = unit === 'all' ? all : all.filter((q) => q.unitId === unit);
   const countBy = (u: CgUnitId) => all.filter((q) => q.unitId === u).length;
+  // 오답 모의고사는 기초·실력점검 오답만
+  const mockable = all.filter((q) => q.set !== 'mid').length;
 
   if (retry) {
     return (
@@ -44,7 +48,7 @@ export function WrongNotePage() {
     <div className="stack" style={{ maxWidth: 900, margin: '0 auto', width: '100%' }}>
       <p className="crumbs" style={{ margin: 0 }}><Link to={base}>{course.name}</Link> / 오답노트</p>
       <h1 style={{ margin: 0 }}>오답노트 <span className="muted" style={{ fontSize: '1rem' }}>{all.length}문항</span></h1>
-      <p className="muted" style={{ margin: 0 }}>기초 객관식·실력점검·모의고사에서 틀린 문항이 자동으로 모여요. 다시 맞히면 빠져요.</p>
+      <p className="muted" style={{ margin: 0 }}>기초 객관식·실력점검·모의고사·중간점검에서 틀린 문항이 자동으로 모여요. 다시 맞히면 빠져요.</p>
       {done && <p className="notice notice-good" style={{ margin: 0 }}>{done.total}문항 중 {done.score}문항을 맞혀 오답노트에서 뺐어요.</p>}
       {all.length === 0 ? (
         <p className="notice">오답노트가 비어 있어요. 👏</p>
@@ -60,14 +64,14 @@ export function WrongNotePage() {
             <button className="btn btn-primary" onClick={() => { setDone(null); setRetry(shown.slice(0, 40)); }}>
               {shown.length > 40 ? '최근 40문항 다시 풀기' : `${shown.length}문항 다시 풀기`}
             </button>
-            {all.length >= WRONG_MOCK_MIN ? <Link className="btn" to={`${base}/mock/wrong`}>오답 모의고사({course.pass.mock.minutes}분)</Link> : <span className="small muted">오답 {WRONG_MOCK_MIN}문항부터 오답 모의고사</span>}
+            {mockable >= WRONG_MOCK_MIN ? <Link className="btn" to={`${base}/mock/wrong`}>오답 모의고사({course.pass.mock.minutes}분)</Link> : <span className="small muted">기초·실력점검 오답 {WRONG_MOCK_MIN}문항부터 오답 모의고사</span>}
           </div>
           <ol className="cg-wrong-list">
             {shown.map((q) => {
               const w = cg.state.wrong[q.id];
               return (
                 <li key={q.id}>
-                  <p className="small muted" style={{ margin: '0 0 0.2rem' }}>{q.unitId.replace('U', '')}단원 · {course.areaLabel(q.area)} · {q.set === 'basic' ? '기초' : '실력점검'} · 틀린 횟수 {w?.n ?? 1}</p>
+                  <p className="small muted" style={{ margin: '0 0 0.2rem' }}>{q.unitId.replace('U', '')}단원{q.area ? ` · ${course.areaLabel(q.area)}` : ''} · {SET_LABEL[q.set]} · 틀린 횟수 {w?.n ?? 1}</p>
                   <ReviewCard q={q} picked={undefined} unansweredNote={false} />
                 </li>
               );

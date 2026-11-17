@@ -466,6 +466,9 @@ export function activeWrongIds(s: CgState): string[] {
   return Object.entries(s.wrong).filter(([, w]) => isWrongActive(w)).sort((a, b) => (a[1].at < b[1].at ? 1 : -1)).map(([k]) => k);
 }
 
+/** 오답 모의고사에 낼 수 있는 오답(기초·실력점검 문항만: 중간점검 문항은 오답노트에만) */
+export const mockWrongIds = (s: CgState) => activeWrongIds(s).filter((id) => !isMidQid(id));
+
 export function addMock(s: CgState, m: MockRecord, now = new Date().toISOString()): CgState {
   if (s.mock.some((x) => x.id === m.id)) return s;
   return stamp({ ...s, mock: [...s.mock, m].slice(-MOCK_KEEP) }, now);

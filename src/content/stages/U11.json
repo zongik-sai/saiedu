@@ -860,15 +860,15 @@
         {
           "id": "U11-m1-q12",
           "card": "U11-t3",
-          "q": "BEGIN → INSERT A → SAVEPOINT s1 → UPDATE B → ROLLBACK TO s1 → DELETE C → COMMIT 순서로 실행했어요. 최종 반영되는 변경은?",
+          "q": "SQLite에서 BEGIN 후 다온을 확정(UPDATE)하고, SAVEPOINT s1을 만든 뒤 나래 행을 삭제(DELETE)했어요. 이어서 ROLLBACK TO s1, 마루 신청 추가(INSERT), COMMIT을 했다면 최종 반영되는 변경은?",
           "o": [
-            "A만",
-            "A, B, C 모두",
-            "B와 C",
-            "A와 C"
+            "다온 확정만",
+            "세 변경 모두",
+            "나래 삭제와 마루 신청",
+            "다온 확정과 마루 신청"
           ],
           "a": 3,
-          "exp": "ROLLBACK TO s1은 저장점 뒤의 B만 취소하고 트랜잭션은 계속 열려 있어요. 그 뒤의 DELETE C도 같은 트랜잭션에 들어가 COMMIT으로 A와 함께 확정돼요."
+          "exp": "ROLLBACK TO s1은 저장점 뒤의 나래 삭제만 취소하고 트랜잭션은 계속 열려 있어요. 그 뒤의 마루 신청 추가도 같은 트랜잭션에 들어가 COMMIT으로 다온 확정과 함께 확정돼요."
         },
         {
           "id": "U11-m1-q13",
