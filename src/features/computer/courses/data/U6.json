@@ -370,7 +370,7 @@
         "pairs": [
           {
             "term": "str.contains",
-            "desc": "특정 글자가 들어 있으면 True를 돌려주는 메서드"
+            "desc": "값 속 어딘가에 특정 글자가 있으면 True를 돌려주는 메서드"
           },
           {
             "term": "str.replace",
