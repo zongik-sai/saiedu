@@ -77,10 +77,14 @@ export interface CgState {
 
 export const MOCK_KEEP = 60;
 
-/** 문항 ID 형식: 단원 + 기초(b)/실력점검(a) 번호 */
-export const QID_RE = /^U\d{1,2}-[ab]\d{1,3}$/;
+/** 문항 ID 형식: 단원 + 기초(b)/실력점검(a) 번호, 또는 중간점검 문항(단원-묶음-q번호: 'U3-m1-q12') */
+export const QID_RE = /^U\d{1,2}-(?:[ab]\d{1,3}|m\d{1,2}-q\d{1,3})$/;
 /** 이론 카드 ID 형식 */
 export const CARD_ID_RE = /^U\d{1,2}-t\d{1,3}$/;
+/** 중간점검 묶음 ID 형식(마친 묶음은 카드와 같은 cards 기록에 'U3-m1' → 처음 마친 시각으로 둔다) */
+export const MID_ID_RE = /^U\d{1,2}-m\d{1,2}$/;
+/** 중간점검 문항 ID인지(오답노트에는 들어가지만 오답 모의고사에는 들어가지 않음) */
+export const isMidQid = (id: string) => /^U\d{1,2}-m\d{1,2}-q\d{1,3}$/.test(id);
 
 /** 단계별 통과 기준(정답 수 / 문항 수) */
 export interface PassRule { need: number; total: number }
@@ -99,6 +103,11 @@ export interface CourseShape {
   pass?: CoursePass;
   /** 5단계가 size문항 실력점검(자기 점검)인 과목(기초 다듬기). 없으면 예전처럼 통과 기준이 있는 실력점검 */
   selfCheck?: { size: number };
+  /**
+   * 단원별 중간점검 묶음 ID(과목 콘텐츠에서, makeCourse가 채움). 기록을 읽을 때 묶음이 있는 단원은 이 ID만 받는다.
+   * 생략(CG_SHAPE)·묶음이 아직 없는 단원은 형식(U3-m1)만 본다(더 새 화면에서 마친 기록을 지우지 않게)
+   */
+  midGroups?: Partial<Record<CgUnitId, readonly string[]>>;
 }
 
 /** 실력점검 회차 기록은 단원마다 최근 이만큼만 둔다(횟수·합계는 따로 셈) */
@@ -114,6 +123,11 @@ export const mockSizeOf = (shape?: CourseShape): MockSize => shape?.pass?.mock ?
 /** 이 과목 단원의 ID인지(형식 + 과목 단원 목록) */
 const unitOfId = (id: string) => id.slice(0, id.indexOf('-')) as CgUnitId;
 const inCourse = (shape: CourseShape, id: string) => shape.unitIds.includes(unitOfId(id));
+/** 중간점검 묶음 ID가 이 과목 콘텐츠의 묶음인지(묶음을 모르는 단원은 형식만 보고 받는다) */
+const realMid = (shape: CourseShape, id: string) => {
+  const list = shape.midGroups?.[unitOfId(id)];
+  return !list?.length || list.includes(id);
+};
 
 /** 기기 시계가 서로 달라도 사건 순서가 뒤집히지 않게: 앞 사건보다 최소 1ms 뒤 시각 */
 const after = (now: string, prev?: string) => (prev && prev >= now ? new Date(Date.parse(prev) + 1).toISOString() : now);
@@ -156,7 +170,7 @@ export function normalizeCgState(raw: unknown, shape: CourseShape = CG_SHAPE): C
     for (const [k, v] of Object.entries(r.wrong)) if (QID_RE.test(k) && inCourse(shape, k) && v && typeof v.at === 'string') s.wrong[k] = { at: v.at, n: typeof v.n === 'number' ? v.n : 1, ...(typeof v.clearedAt === 'string' ? { clearedAt: v.clearedAt } : {}) };
   }
   if (r.cards && typeof r.cards === 'object') {
-    for (const [k, v] of Object.entries(r.cards)) if (CARD_ID_RE.test(k) && inCourse(shape, k) && typeof v === 'string') s.cards[k] = v;
+    for (const [k, v] of Object.entries(r.cards)) if ((CARD_ID_RE.test(k) || (MID_ID_RE.test(k) && realMid(shape, k))) && inCourse(shape, k) && typeof v === 'string') s.cards[k] = v;
   }
   for (const u of shape.unitIds) {
     const l = r.locks && typeof r.locks === 'object' && Object.hasOwn(r.locks, u) ? (r.locks as Record<string, unknown>)[u] : undefined;
@@ -326,13 +340,14 @@ function setLevel(s: CgState, u: CgUnitId, lv: CgLevel, f: (r: LevelRecord) => L
 /** 단원 잠김 횟수(마지막 초기화 이후) */
 export const lockCount = (s: CgState, u: CgUnitId) => s.locks[u]?.length ?? 0;
 
-const unitCardPrefix = (u: CgUnitId) => `${u}-t`;
+/** 단원의 카드·중간점검 묶음 기록인지('U1-t3', 'U1-m2'. 'U10-…'은 아님) */
+const inUnitCards = (u: CgUnitId, k: string) => k.startsWith(`${u}-t`) || k.startsWith(`${u}-m`);
 
-/** 단원의 진도·점수(단계 기록·카드·실력점검 기록)와 잠김 횟수를 지운다. 오답노트·모의고사·다른 단원은 그대로 */
+/** 단원의 진도·점수(단계 기록·카드·중간점검 묶음·실력점검 기록)와 잠김 횟수를 지운다. 오답노트·모의고사·다른 단원은 그대로 */
 export function resetUnit(s: CgState, u: CgUnitId, now = new Date().toISOString()): CgState {
   const units = { ...s.units };
   delete units[u];
-  const cards = Object.fromEntries(Object.entries(s.cards).filter(([k]) => !k.startsWith(unitCardPrefix(u))));
+  const cards = Object.fromEntries(Object.entries(s.cards).filter(([k]) => !inUnitCards(u, k)));
   const locks = { ...s.locks };
   delete locks[u];
   const prev = s.resets[u];
@@ -356,25 +371,40 @@ function dropStaleUnits(x: CgState, latest: CgState['resets'], shape: CourseShap
       delete units[u];
       const locks = { ...out.locks };
       delete locks[u];
-      out = withoutCheck({ ...out, units, locks, cards: Object.fromEntries(Object.entries(out.cards).filter(([k]) => !k.startsWith(unitCardPrefix(u)))) }, u);
+      out = withoutCheck({ ...out, units, locks, cards: Object.fromEntries(Object.entries(out.cards).filter(([k]) => !inUnitCards(u, k))) }, u);
     }
   }
   return out;
 }
 
-/** 카드 목록 중 개념 맞추기를 마친 장 수 */
-export const cardsDone = (s: CgState, cardIds: string[]) => cardIds.filter((id) => Object.hasOwn(s.cards, id)).length;
+/** 카드(또는 중간점검 묶음) 목록 중 마친 수 */
+export const cardsDone = (s: CgState, cardIds: readonly string[]) => cardIds.filter((id) => Object.hasOwn(s.cards, id)).length;
+/** 카드·중간점검 묶음을 마쳤는지 */
+export const itemDone = (s: CgState, id: string) => Object.hasOwn(s.cards, id);
 
 /**
- * 카드 한 장의 개념 맞추기를 마쳤을 때. 단원 카드를 모두 마치면 1단계 통과로 기록한다.
- * unitCardIds: 이 단원의 모든 카드 ID
+ * 1단계(이론·개념 맞추기) 항목 하나(카드의 개념 맞추기 또는 중간점검 묶음)를 마쳤을 때.
+ * 단원 카드를 모두 마치고 중간점검 묶음도 모두 마치면 1단계 통과로 기록한다(묶음이 없는 단원은 카드만: 예전 규칙).
+ * 한 번 통과한 1단계는 되돌리지 않는다(예전 규칙으로 통과한 학생의 중간점검은 연습으로 남음).
+ * unitCardIds: 이 단원의 모든 카드 ID, midIds: 이 단원의 모든 중간점검 묶음 ID
  */
-export function markCard(s: CgState, u: CgUnitId, cardId: string, unitCardIds: string[], now = new Date().toISOString()): { state: CgState; unitDone: boolean; firstPass: boolean } {
-  let state = Object.hasOwn(s.cards, cardId) ? stamp(s, now) : stamp({ ...s, cards: { ...s.cards, [cardId]: now } }, now);
-  const unitDone = cardsDone(state, unitCardIds) === unitCardIds.length;
+export function markCard(s: CgState, u: CgUnitId, itemId: string, unitCardIds: readonly string[], now = new Date().toISOString(), midIds: readonly string[] = []): { state: CgState; unitDone: boolean; firstPass: boolean } {
+  let state = Object.hasOwn(s.cards, itemId) ? stamp(s, now) : stamp({ ...s, cards: { ...s.cards, [itemId]: now } }, now);
+  const unitDone = cardsDone(state, unitCardIds) === unitCardIds.length && cardsDone(state, midIds) === midIds.length;
   const firstPass = unitDone && !isPassed(state, u, 1);
+  // 통과 기록의 점수 칸은 예전처럼 카드 장 수(화면 '통과 10/10'). 중간점검 수는 cards 기록에서 센다
   if (unitDone) state = setLevel(state, u, 1, (r) => ({ ...r, best: unitCardIds.length, total: unitCardIds.length, passedAt: r.passedAt ?? now, lastAt: now }), now);
   return { state, unitDone, firstPass };
+}
+
+/** 중간점검 묶음 하나를 마쳤을 때(10문항을 모두 맞힘). 규칙은 markCard와 같다 */
+export const markMid = (s: CgState, u: CgUnitId, midId: string, unitCardIds: readonly string[], midIds: readonly string[], now = new Date().toISOString()) =>
+  markCard(s, u, midId, unitCardIds, now, midIds);
+
+/** 단원 1단계 진행: 마친 카드·중간점검 묶음 수 */
+export function level1Progress(s: CgState, unit: { cards: readonly { id: string }[]; mids?: readonly { id: string }[] }) {
+  const mids = unit.mids ?? [];
+  return { cards: cardsDone(s, unit.cards.map((c) => c.id)), cardsTotal: unit.cards.length, mids: cardsDone(s, mids.map((g) => g.id)), midsTotal: mids.length };
 }
 
 /** 이론(1)·요약(4) 확인 표시 */

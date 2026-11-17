@@ -68,12 +68,12 @@ async function answerOne(page: Page, pool: RawQ[], wrong: boolean) {
   return q.q;
 }
 
-test('첫 화면: 기초 다듬기는 다른 과목과 같은 큰 카드로 맨 아래(작은 보충 학습 묶음 없음, 자격증 이름 없음)', async ({ page }) => {
+test('첫 화면: 기초 다듬기는 다른 과목과 같은 큰 카드로 맨 앞(작은 보충 학습 묶음 없음, 자격증 이름 없음)', async ({ page }) => {
   await fresh(page);
   const cards = page.locator('.subject-card');
   await expect(cards).toHaveCount(6);
-  await expect(cards.last().locator('h2')).toHaveText('기초 다듬기');
-  const card = cards.last();
+  await expect(cards.first().locator('h2')).toHaveText('기초 다듬기');
+  const card = cards.first();
   for (const f of ['10단원 × 5단계', '단원마다 10문항 실력점검', `모의고사 ${MOCK_SIZE.foundation.total}문항 · ${MOCK_SIZE.foundation.minutes}분`]) await expect(card.locator('.subject-facts')).toContainText(f);
   await expect(card.locator('.subject-art svg')).toBeVisible();
   // 같은 카드 모양·크기(첫 줄 카드와 같은 너비, 그림 칸 같은 크기)
@@ -89,7 +89,7 @@ test('첫 화면: 기초 다듬기는 다른 과목과 같은 큰 카드로 맨 
   await expect(page).toHaveURL(/#\/basics$/);
   await expect(page.locator('.topbar .brand')).toContainText('기초 다듬기');
   await page.getByRole('link', { name: '과목', exact: true }).click();
-  await expect(page.locator('.subject-card').last().getByText('최근 공부')).toBeVisible();
+  await expect(page.locator('.subject-card').first().getByText('최근 공부')).toBeVisible();
 });
 
 test('기초 다듬기 홈: 10단원 순서(진법 → 오류 정정 → IP → 클래스 → 서브네팅), 50단계, 네트워크로 이어 가기', async ({ page }) => {
