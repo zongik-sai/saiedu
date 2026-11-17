@@ -274,7 +274,7 @@
           }
         ],
         "distractors": [
-          "int",
+          "float",
           "print()",
           "TypeError"
         ]

@@ -108,6 +108,9 @@ test('데이터베이스 1단계 중간점검: 카드 3장 → 중간점검(틀�
   test.skip(!U, '데이터베이스 중간점검 콘텐츠가 아직 없음');
   const S = UNIT_STAGES[U!];
   const g = S.mids[0];
+  // 휴대폰 너비로 처음부터(전체화면 중에는 창 크기를 바꿀 수 없음): 아래에 붙은 용어 칸으로 개념 맞추기도 푼다
+  await page.setViewportSize({ width: 390, height: 844 });
+  const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   await openWithState(page, stateWithUnits(UNIT_IDS.slice(0, UNIT_IDS.indexOf(U!))), `/learn/${U}`, { stages: false });
   await resumeIfPaused(page);
   await expect(page.locator('.cg-levels li').first()).toContainText(`이론 카드 ${S.cards.length}장 + 중간점검 ${S.mids.length}번`);
@@ -119,16 +122,16 @@ test('데이터베이스 1단계 중간점검: 카드 3장 → 중간점검(틀�
   const n = g.cards.length;
   await page.locator('.cg-card-nav').getByRole('button', { name: new RegExp(`^${n}번 카드`) }).click();
   await page.getByRole('button', { name: '다 읽었어요 → 개념 맞추기' }).click();
-  await solveMatch(page, S.cards[n - 1].match!);
+  await solveMatch(page, S.cards[n - 1].match!, { check: false });
+  expect(await overflow(), '개념 맞추기').toBeLessThanOrEqual(1);
+  await page.getByRole('button', { name: '확인', exact: true }).click();
   const notice = page.locator('.notice-good', { hasText: `${n}번 카드 완료!` });
   await expect(notice.getByRole('button')).toHaveText(['중간점검 시작']);
   await notice.getByRole('button', { name: '중간점검 시작' }).click();
   await expect(page.locator('.cg-mid-count')).toContainText('맞힌 문항 0/10');
-  // 휴대폰 너비: 틀린 문항 피드백 화면도 가로 스크롤 없음
-  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await overflow(), '중간점검').toBeLessThanOrEqual(1);
   const missed = await solveMid(page, g.bank, { wrongFirst: true });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
-  await page.setViewportSize({ width: 1280, height: 720 });
+  expect(await overflow(), '중간점검 완료').toBeLessThanOrEqual(1);
   await expect(page.getByTestId('mid-done')).toContainText('완료! 10문항을 모두 맞혔어요.');
   await expect(dot).toHaveClass(/done/);
   await expect(page.locator('.learn-head .badge')).toHaveText(`카드 ${n}/${S.cards.length} · 점검 1/${S.mids.length}`);
