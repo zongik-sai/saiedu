@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { UNIT_BY_ID } from '../../content';
-import { UNIT_STAGES, quizNeed, type PracticeItem, type StageCard } from '../../content/stages';
+import { UNIT_STAGES, quizNeed, type PracticeItem, type StageCard, type StageMidQuiz } from '../../content/stages';
 import type { UnitId } from '../../content/types';
 import { useLearner } from '../../app/LearnerContext';
 import { useLiveDetail } from '../monitor/liveStore';
 import { CardMatch } from '../../components/CardMatch';
+import { ConceptNav, midTitle } from '../../components/ConceptNav';
+import { MidCheck } from '../../components/MidCheck';
+import { groupIndexOf, MID_DRAW, midStatus, nextConceptTodo, resumeMidRun, type ConceptView } from '../../lib/concepts';
 import { DataPanel } from '../../components/DataPanel';
 import { InfoTable } from '../../components/InfoTable';
 import { ResultTable, SqlErrorView } from '../../components/common';
-import { learnerPrefix } from '../../lib/storage';
+import { learnerPrefix, readJson } from '../../lib/storage';
 import type { SqlError } from '../../sql/engine';
 import type { ResultSet } from '../../sql/grader/compare';
 import { outcomeMessage, sqlClient } from '../../sql/worker/sqlClient';
@@ -17,7 +20,7 @@ import { McqRunner, ReviewCard, type McqResult } from '../computer/McqRunner';
 import { useFocusGate } from '../focus/FocusContext';
 import { StageStatus } from './StageStatus';
 import {
-  isUnitUnlocked, markStageItem, recordStageQuiz, STAGE_NAME, stageItemDone, stageOpen, stagePassed, type StageNo,
+  isUnitUnlocked, markStageItem, markStageMid, reconcileStage1, recordStageMiss, recordStageQuiz, stage1Progress, STAGE_NAME, stageItemDone, stageOpen, stagePassed, type StageNo,
 } from '../progress/model';
 
 /**
@@ -151,53 +154,147 @@ function StepNav({ ids, idx, isDone, go, doneN, word }: { ids: string[]; idx: nu
 
 function TheoryStage({ u }: { u: UnitId }) {
   const L = useLearner();
-  const cards = UNIT_STAGES[u].cards;
+  const prefix = learnerPrefix(L.identity.learnerKey);
+  const S = UNIT_STAGES[u];
+  const cards = S.cards;
   const ids = useMemo(() => cards.map((c) => c.id), [cards]);
-  const st = useStepper(ids);
-  const c = cards[st.idx];
+  const midIds = useMemo(() => S.mids.map((g) => g.id), [S]);
+  const isDone = (id: string) => stageItemDone(L.state, id);
   const passed = stagePassed(L.state, u, 1);
-  const cardDone = st.isDone(c.id);
-  const finish = () => {
-    void L.commit((s) => markStageItem(s, u, 1, c.id).state);
-    st.setJustDone(true);
+  const midKey = (gid: string) => `${prefix}db:mid:${u}:${gid}`;
+  const [view, setView] = useState<ConceptView>(() => {
+    // 풀던 중간점검이 있으면 그 묶음, 아니면 순서대로 처음 할 것
+    const g = S.mids.findIndex((x) => resumeMidRun(readJson<unknown>(midKey(x.id), null), x.id, x.bank) !== null);
+    return g >= 0 ? { kind: 'mid', gi: g } : nextConceptTodo(ids, S.mids, isDone, passed) ?? { kind: 'card', idx: 0 };
+  });
+  const [phase, setPhase] = useState<'read' | 'match'>('read');
+  const [round, setRound] = useState(0);
+  const [justDone, setJustDone] = useState(false);
+  const top = useRef<HTMLDivElement>(null);
+  const doneRef = useRef<HTMLDivElement>(null);
+  const idx = view.kind === 'card' ? view.idx : -1;
+  useLiveDetail(view.kind === 'card' ? `카드 ${idx + 1}/${cards.length}${phase === 'match' ? ' · 개념 맞추기' : ''}` : null);
+  useEffect(() => {
+    if (justDone) doneRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [justDone]);
+  // 다른 기기와 합쳐 카드·중간점검을 모두 마쳤는데 통과 기록이 없으면(기록 병합은 콘텐츠를 모름) 통과로 맞춘다
+  const reconcile = useRef(false);
+  useEffect(() => {
+    if (reconcile.current) return;
+    reconcile.current = true;
+    if (reconcileStage1(L.state, u, midIds) !== L.state) void L.commit((s) => reconcileStage1(s, u, midIds));
+  }, [L, u, midIds]);
+  const go = (v: ConceptView) => {
+    setView(v);
+    setPhase('read');
+    setJustDone(false);
+    setRound((r) => r + 1);
+    top.current?.scrollIntoView({ block: 'start' });
   };
-  const nt = st.nextTodo();
+  const prog = stage1Progress(L.state, u, midIds);
+  const allDone = passed && !nextConceptTodo(ids, S.mids, isDone, passed);
+  const finishCard = (cardId: string) => {
+    void L.commit((s) => markStageItem(s, u, 1, cardId, undefined, midIds).state);
+    setJustDone(true);
+  };
+  const nextButton = (from: ConceptView) => {
+    const n = nextConceptTodo(ids, S.mids, isDone, passed, from);
+    if (!n) return null;
+    if (n.kind === 'mid') return <button className="btn btn-primary" onClick={() => go(n)}>중간점검 시작{from.kind === 'card' && groupIndexOf(S.mids, ids[from.idx]) === n.gi ? '' : ` (${midTitle(n.gi, ids, S.mids[n.gi])})`}</button>;
+    return <button className="btn btn-primary" onClick={() => go(n)}>{from.kind === 'card' && n.idx === from.idx + 1 ? '다음 카드 →' : `${n.idx + 1}번 카드로 →`}</button>;
+  };
+  const passText = S.mids.length ? `카드 ${cards.length}장과 중간점검 ${S.mids.length}번을 모두 마쳤어요. 1단계 통과!` : `카드 ${cards.length}장을 모두 마쳤어요. 1단계 통과!`;
+  const nt = nextConceptTodo(ids, S.mids, isDone, passed, view);
+  const c = idx >= 0 ? cards[idx] : undefined;
+  const cardDone = c ? isDone(c.id) : false;
   return (
-    <div className="stack" ref={st.top} style={{ scrollMarginTop: '4.5rem' }}>
-      <p className="muted" style={{ margin: 0 }}>이론 카드를 한 장씩 읽고, 바로 아래 개념 맞추기를 모두 맞히면 다음 카드로 넘어가요. {cards.length}장을 모두 마치면 1단계 통과예요.</p>
-      <StepNav ids={ids} idx={st.idx} isDone={st.isDone} go={st.go} doneN={st.doneN} word="카드" />
-      {st.phase === 'read' ? (
+    <div className="stack" ref={top} style={{ scrollMarginTop: '4.5rem' }}>
+      <p className="muted" style={{ margin: 0 }}>
+        이론 카드를 한 장씩 읽고, 바로 아래 개념 맞추기를 모두 맞히면 다음 카드로 넘어가요.
+        {S.mids.length
+          ? ` 카드 3장마다 중간점검(${MID_DRAW}문항, 다 맞힐 때까지)이 있어요. 카드 ${cards.length}장과 중간점검 ${S.mids.length}번을 모두 마치면 1단계 통과예요.`
+          : ` ${cards.length}장을 모두 마치면 1단계 통과예요.`}
+      </p>
+      <ConceptNav cardIds={ids} groups={S.mids} view={view} isDone={isDone} passed={passed} go={go} />
+      {view.kind === 'mid' ? (
+        <StageMid key={`${S.mids[view.gi].id}:${round}`} u={u} gi={view.gi} storageKey={midKey(S.mids[view.gi].id)}
+          passedBlock={<><b>{passText}</b><NextStage unitId={u} n={1} /></>} nextButton={nextButton} />
+      ) : c && (st0(phase, c) ? (
         <article className="panel stack cg-card" aria-labelledby={`card-${c.id}`}>
-          <CardView c={c} n={st.idx + 1} />
+          <CardView c={c} n={idx + 1} />
           <div className="row">
-            <button className="btn btn-primary" onClick={st.startMatch}>{cardDone ? '개념 맞추기 다시 하기' : '다 읽었어요 → 개념 맞추기'}</button>
+            {c.match ? (
+              <button className="btn btn-primary" onClick={() => { setPhase('match'); requestAnimationFrame(() => top.current?.scrollIntoView({ block: 'start' })); }}>{cardDone ? '개념 맞추기 다시 하기' : '다 읽었어요 → 개념 맞추기'}</button>
+            ) : !cardDone && <button className="btn btn-primary" onClick={() => finishCard(c.id)}>다 읽었어요</button>}
             {cardDone && <span className="badge badge-exec">맞추기 완료</span>}
-            {cardDone && st.idx < cards.length - 1 && <button className="btn" onClick={() => st.go(st.idx + 1)}>다음 카드 →</button>}
+            {cardDone && idx < cards.length - 1 && <button className="btn" onClick={() => go({ kind: 'card', idx: idx + 1 })}>다음 카드 →</button>}
           </div>
         </article>
       ) : (
         <>
           <details className="panel cg-card-peek">
-            <summary>{String(st.idx + 1).padStart(2, '0')} {c.title} — 카드 다시 보기</summary>
-            <div className="stack" style={{ marginTop: '0.5rem' }}><CardView c={c} n={st.idx + 1} /></div>
+            <summary>{String(idx + 1).padStart(2, '0')} {c.title} — 카드 다시 보기</summary>
+            <div className="stack" style={{ marginTop: '0.5rem' }}><CardView c={c} n={idx + 1} /></div>
           </details>
-          <CardMatch key={`${c.id}:${st.round}`} id={c.id} match={c.match} onDone={finish} />
+          <CardMatch key={`${c.id}:${round}`} id={c.id} match={c.match!} onDone={() => finishCard(c.id)} />
         </>
-      )}
-      {st.justDone && (
-        <div ref={st.doneRef} className="notice notice-good stack" aria-live="polite" style={{ margin: 0 }}>
-          {passed && nt < 0 ? (
-            <><b>카드 {cards.length}장을 모두 마쳤어요. 1단계 통과!</b><NextStage unitId={u} n={1} /></>
+      ))}
+      {justDone && view.kind === 'card' && (
+        <div ref={doneRef} className="notice notice-good stack" aria-live="polite" style={{ margin: 0 }}>
+          {allDone ? (
+            <><b>{passText}</b><NextStage unitId={u} n={1} /></>
           ) : (
             <>
-              <b>{st.idx + 1}번 카드 완료! ({st.doneN}/{cards.length})</b>
-              {nt >= 0 && <div className="row"><button className="btn btn-primary" onClick={() => st.go(nt)}>{nt === st.idx + 1 ? '다음 카드 →' : `${nt + 1}번 카드로 →`}</button></div>}
+              <b>{idx + 1}번 카드 완료! ({prog.cards}/{cards.length})</b>
+              {nt?.kind === 'mid' && <span>{midTitle(nt.gi, ids, S.mids[nt.gi])}의 카드를 모두 마쳤어요. 중간점검으로 다시 확인해요.</span>}
+              {nt && <div className="row">{nextButton(view)}</div>}
             </>
           )}
         </div>
       )}
-      {passed && !st.justDone && <><p className="notice notice-good" style={{ margin: 0 }}>1단계를 통과했어요. 카드를 다시 보거나 개념 맞추기를 복습할 수 있어요.</p><NextStage unitId={u} n={1} /></>}
+      {passed && !justDone && view.kind === 'card' && (
+        <>
+          <p className="notice notice-good" style={{ margin: 0 }}>
+            1단계를 통과했어요. 카드를 다시 보거나 개념 맞추기를 복습할 수 있어요.
+            {S.mids.length > 0 && ` 중간점검(${prog.mids}/${prog.midsTotal} 마침)도 '점검'을 눌러 다시 풀어 볼 수 있어요.`}
+          </p>
+          <NextStage unitId={u} n={1} />
+        </>
+      )}
     </div>
+  );
+}
+
+/** 읽기 화면인지(개념 맞추기가 없는 카드는 늘 읽기) */
+const st0 = (phase: 'read' | 'match', c: StageCard) => phase === 'read' || !c.match;
+
+/** 1단계 중간점검 한 묶음(카드 3장마다) */
+function StageMid({ u, gi, storageKey, passedBlock, nextButton }: { u: UnitId; gi: number; storageKey: string; passedBlock: ReactElement; nextButton: (from: ConceptView) => ReactElement | null }) {
+  const L = useLearner();
+  const S = UNIT_STAGES[u];
+  const g = S.mids[gi];
+  const ids = S.cards.map((c) => c.id);
+  const midIds = S.mids.map((x) => x.id);
+  const isDone = (id: string) => stageItemDone(L.state, id);
+  const passed = stagePassed(L.state, u, 1);
+  const [status] = useState(() => midStatus(g, isDone, passed));
+  const titleOf = (cardId: string | undefined) => S.cards.find((c) => c.id === cardId)?.title;
+  const after = passed && !nextConceptTodo(ids, S.mids, isDone, passed) && status !== 'done' && status !== 'practice'
+    ? passedBlock
+    : <div className="row">{nextButton({ kind: 'mid', gi }) ?? (passed ? <NextStage unitId={u} n={1} /> : null)}</div>;
+  return (
+    <MidCheck
+      groupId={g.id}
+      bank={g.bank}
+      title={midTitle(gi, ids, g)}
+      cardTitles={g.cards.map((c) => titleOf(c) ?? c)}
+      status={status}
+      storageKey={storageKey}
+      // 틀린 문항은 오답 복습에 남긴다(카드 제목으로 묶음). 경험치·통과와는 무관
+      onAnswer={(q, correct) => { if (!correct) void L.commit((s) => recordStageMiss(s, q.id, [titleOf((q as StageMidQuiz).card) ?? '중간점검'])); }}
+      onComplete={() => { if (!isDone(g.id)) void L.commit((s) => markStageMid(s, u, g.id, midIds).state, { immediate: true }); }}
+      after={after}
+    />
   );
 }
 
