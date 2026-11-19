@@ -201,7 +201,9 @@ function TheoryStage({ u }: { u: UnitId }) {
     const n = nextConceptTodo(ids, S.mids, isDone, passed, from);
     if (!n) return null;
     if (n.kind === 'mid') return <button className="btn btn-primary" onClick={() => go(n)}>중간점검 시작{from.kind === 'card' && groupIndexOf(S.mids, ids[from.idx]) === n.gi ? '' : ` (${midTitle(n.gi, ids, S.mids[n.gi])})`}</button>;
-    return <button className="btn btn-primary" onClick={() => go(n)}>{from.kind === 'card' && n.idx === from.idx + 1 ? '다음 카드 →' : `${n.idx + 1}번 카드로 →`}</button>;
+    // 바로 다음 카드면 '다음 카드'(중간점검 뒤에는 그 묶음 마지막 카드의 다음 카드)
+    const after = from.kind === 'card' ? from.idx : ids.indexOf(S.mids[from.gi].cards[S.mids[from.gi].cards.length - 1]);
+    return <button className="btn btn-primary" onClick={() => go(n)}>{n.idx === after + 1 ? '다음 카드 →' : `${n.idx + 1}번 카드로 →`}</button>;
   };
   const passText = S.mids.length ? `카드 ${cards.length}장과 중간점검 ${S.mids.length}번을 모두 마쳤어요. 1단계 통과!` : `카드 ${cards.length}장을 모두 마쳤어요. 1단계 통과!`;
   const nt = nextConceptTodo(ids, S.mids, isDone, passed, view);
