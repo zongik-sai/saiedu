@@ -71,8 +71,9 @@ function cgRows() {
 function basicRows() {
   const T = (n: number) => `2026-11-0${n}T09:00:00.000Z`;
   const run = (s: CgState, u: 'U1' | 'U2', scores: [number, number][]) => scores.reduce((x, [sc, d]) => recordSelfCheck(x, u, sc, 10, T(d)).state, s);
-  const a = run(run(emptyCgState(), 'U1', [[6, 1], [9, 3], [4, 5]]), 'U2', [[7, 4]]);
-  const b = run(emptyCgState(), 'U1', [[8, 2]]);
+  // 중간점검(카드 3장마다): 가온은 1단원 묶음 2개, 나래는 1개를 마침
+  const a = { ...run(run(emptyCgState(), 'U1', [[6, 1], [9, 3], [4, 5]]), 'U2', [[7, 4]]), cards: { 'U1-m1': T(1), 'U1-m2': T(2) } };
+  const b = { ...run(emptyCgState(), 'U1', [[8, 2]]), cards: { 'U1-m1': T(2) } };
   const t = run(emptyCgState(), 'U1', [[10, 2]]); // 선생님 테스트 계정
   return [
     { user_id: 'u1', name: '가온', email: 'sai_209610101@seoulai.sen.hs.kr', state: a, updated_at: T(5) },
@@ -317,6 +318,13 @@ test.describe('선생님 화면·실시간 학습 위치(가짜 로그인)', () 
     await expect(sc.locator('tbody tr').nth(1)).toContainText('7.0/10');
     await expect(sc.locator('tbody tr').nth(2)).toContainText('0명');
     await expect(sc).toContainText('학생 화면에는 단원별 최고점과 누적 합계 점수만 보여요');
+    // 단원별 중간점검: 반 평균 마친 수 / 그 단원 묶음 수(콘텐츠에 중간점검이 있을 때)
+    const mids1 = (JSON.parse(readFileSync('src/features/computer/courses/basic/U1.json', 'utf8')).mid ?? []).length as number;
+    const unitTable = page.locator('table.t-unit-table');
+    if (mids1) {
+      await expect(unitTable.getByRole('columnheader', { name: '중간점검' })).toBeVisible();
+      await expect(unitTable.locator('tbody tr').first()).toContainText(`1.5/${mids1}`);
+    } else await expect(unitTable.getByRole('columnheader', { name: '중간점검' })).toHaveCount(0);
     const cls = page.locator('table.cg-class');
     await expect(cls.getByRole('columnheader', { name: /실력점검 누적/ })).toBeVisible();
     await expect(cls.locator('tbody tr').filter({ hasText: '가온' })).toContainText('26점 · 4회');
@@ -327,6 +335,8 @@ test.describe('선생님 화면·실시간 학습 위치(가짜 로그인)', () 
     const [head, ...lines] = csvText.split('\r\n');
     expect(head).toContain('U1 실력점검 최고(/10),U1 실력점검 누적,U1 실력점검 횟수,U2 실력점검 최고(/10)');
     expect(head).toContain('U10 실력점검 횟수,모의 최고');
+    // 단원별 중간점검 마친 수(레벨 칸 뒤, 실력점검 칸 앞)
+    if (mids1) expect(head).toContain(`U10 레벨,U1 중간점검(/${mids1})`);
     const gaon = lines.find((l) => l.startsWith('가온,'))!;
     expect(gaon).toContain(',9,19,3,7,7,1,,,0,');
     expect(csvText).not.toContain('teacher@school.example');
@@ -334,6 +344,7 @@ test.describe('선생님 화면·실시간 학습 위치(가짜 로그인)', () 
     await page.getByRole('button', { name: '가온' }).click();
     const drawer = page.getByRole('dialog');
     await expect(drawer.getByRole('heading', { name: '실력점검(10문항)' })).toBeVisible();
+    if (mids1) await expect(drawer.locator('table.t-detail tbody tr').first()).toContainText(`2/${mids1}`);
     const u1 = drawer.locator('table.t-sc-detail tbody tr').first();
     await expect(u1.locator('td')).toHaveText(['9/10', '19점', '3회', '4/10']);
     await expect(drawer.locator('table.t-sc-detail tbody tr').nth(2).locator('td')).toHaveText(['-', '-', '0회', '-']);
