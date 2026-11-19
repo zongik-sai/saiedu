@@ -235,8 +235,8 @@ export function ReportPage() {
           {courseComplete(state) ? <p className="notice notice-good">나의 SQL 숲을 완성했어요! Lv{level}</p> : <p className="notice">숲 완성까지: {!allUnitsComplete(state) ? '단원 완료, ' : ''}{unsolved.length ? `체크포인트 ${unsolved.length}문항 해결, ` : ''}{!finalComplete(state) ? '최종 진단 완료' : ''}</p>}
           <p className="small muted">진단 점수와 숲 성장은 별개예요. 점수가 낮아도 숲은 사라지지 않아요. 이 보고서는 SQLD 합격 예측이 아니에요.</p>
           <div className="row">
-            <button className="btn" onClick={() => downloadText('sql-forest-report.json', JSON.stringify(rep, null, 2), 'application/json')}>JSON 다운로드</button>
-            <button className="btn" onClick={() => downloadText('sql-forest-report.csv', reportCsv(rep), 'text/csv')}>CSV 다운로드</button>
+            <button className="btn" onClick={() => downloadText('saiedu-report.json', JSON.stringify(rep, null, 2), 'application/json')}>JSON 다운로드</button>
+            <button className="btn" onClick={() => downloadText('saiedu-report.csv', reportCsv(rep), 'text/csv')}>CSV 다운로드</button>
           </div>
         </div>
       </section>

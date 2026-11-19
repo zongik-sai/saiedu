@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * E2E: 개발 데모(npm run dev)로 학습 흐름·집중모드·활동 종류별 조작을 검증한다.
- * pages 프로젝트는 GitHub Pages와 같은 하위 경로(/sql-forest/)로 만든 운영(production) 빌드를 검증한다(S08).
+ * pages 프로젝트는 GitHub Pages와 같은 하위 경로(/saiedu/)로 만든 운영(production) 빌드를 검증한다(S08).
  * 집중모드의 탭 전환은 visibilitychange/blur 이벤트를 합성해 검증하며, 실제 OS 창 전환(Alt+Tab 등)은 수동 확인 항목이다.
  */
 export default defineConfig({
@@ -16,10 +16,10 @@ export default defineConfig({
   projects: [
     { name: 'dev', testIgnore: /pages\.spec\.ts/, use: { baseURL: 'http://localhost:5173/' } },
     // 개발자 .env.local(실제 Supabase 값)과 무관하게 "설정 전" 상태를 검증하도록 공개 값을 비운다
-    { name: 'pages', testMatch: /pages\.spec\.ts/, use: { baseURL: 'http://localhost:4173/sql-forest/' } },
+    { name: 'pages', testMatch: /pages\.spec\.ts/, use: { baseURL: 'http://localhost:4173/saiedu/' } },
   ],
   webServer: [
     { command: 'npm run dev', url: 'http://localhost:5173/', reuseExistingServer: true, timeout: 60_000 },
-    { command: 'BASE_PATH=/sql-forest/ VITE_SUPABASE_URL= VITE_SUPABASE_PUBLISHABLE_KEY= npx vite build --outDir dist-pages-test && npx vite preview --outDir dist-pages-test --base /sql-forest/ --port 4173 --strictPort', url: 'http://localhost:4173/sql-forest/', reuseExistingServer: true, timeout: 180_000 },
+    { command: 'BASE_PATH=/saiedu/ VITE_SUPABASE_URL= VITE_SUPABASE_PUBLISHABLE_KEY= npx vite build --outDir dist-pages-test && npx vite preview --outDir dist-pages-test --base /saiedu/ --port 4173 --strictPort', url: 'http://localhost:4173/saiedu/', reuseExistingServer: true, timeout: 180_000 },
   ],
 });

@@ -1,6 +1,7 @@
 /**
  * localStorage 안전 래퍼. 사생활 보호 모드·차단된 저장소에서도 앱이 멈추지 않게 모든 접근을 try/catch.
  * 키 네임스페이스: sqlforest:v1:<learnerKey>:<name>
+ * (사이트 주소가 /sql-forest/에서 /saiedu/로 바뀌었어도 같은 사이트(zongik-sai.github.io)라 기록이 이어지도록 접두사는 그대로 둔다)
  */
 
 const memory = new Map<string, string>();

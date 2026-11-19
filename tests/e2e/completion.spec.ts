@@ -36,7 +36,7 @@ test('12단원+전 체크포인트 완료 상태 → 최종 진단 12문항(정�
   // 다운로드
   await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('link', { name: '보고서' }).click();
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'CSV 다운로드' }).click()]);
-  expect(dl.suggestedFilename()).toBe('sql-forest-report.csv');
+  expect(dl.suggestedFilename()).toBe('saiedu-report.csv');
 });
 
 test('체크포인트 2/3씩만 푼 경우: 최종 진단까지 해도 숲 완성(900) 보류 → 숲 완성 복습 후 Lv99', async ({ page }) => {
