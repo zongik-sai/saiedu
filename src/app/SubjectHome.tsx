@@ -28,6 +28,8 @@ interface SubjectCard {
 }
 
 const SUBJECTS: SubjectCard[] = [
+  // 기초 다듬기: 첫 번째 과목(2026-11-17 선생님 요청, 그전에는 맨 아래)
+  ...NEW_COURSES.filter((c) => c.group === 'foundation').map((c) => courseCard(c, 2)),
   {
     id: 'db',
     name: '데이터베이스',
@@ -46,8 +48,6 @@ const SUBJECTS: SubjectCard[] = [
   },
   // 같은 단원 × 5단계 구조의 새 과목들. 첫 화면에는 과목 이름·소개만(자격증 이름은 각 과목 화면에서 작게만)
   ...NEW_COURSES.filter((c) => (c.group ?? 'main') === 'main').map((c, i) => courseCard(c, [3, 4, 6][i] ?? 4)),
-  // 기초 다듬기: 정규 과목과 같은 큰 카드로 맨 아래(2026-11-09 선생님 요청)
-  ...NEW_COURSES.filter((c) => c.group === 'foundation').map((c) => courseCard(c, 2)),
 ];
 
 function courseCard(c: NewCourseDef, plant: number): SubjectCard {

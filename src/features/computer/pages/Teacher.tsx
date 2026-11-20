@@ -8,7 +8,7 @@ import { OnlyStudentsToggle, useOnlyStudents } from '../../monitor/OnlyStudents'
 import { useCourse, type CourseConfig } from '../course';
 import { LOCK_LIMIT, MOCK_LABEL, type MockKind } from '../model';
 import {
-  classSummary, CSV_SID_HEADER, csvSid, downloadText, lastActivity, questionStats, selfCheckClassStats, studentDetail, toCsv, toStudents, unitClassStats, type CgClassRow, type CgStudent,
+  classSummary, CSV_SID_HEADER, csvSid, downloadText, hasMids, lastActivity, midIdsOf, questionStats, selfCheckClassStats, studentDetail, toCsv, toStudents, unitClassStats, type CgClassRow, type CgStudent,
 } from '../teacher';
 import { CG_LEVEL_NAME, type CgLevel } from '../types';
 
@@ -137,14 +137,18 @@ export function CourseClass({ course }: { course: CourseConfig }) {
       <button className="btn-quiet thsort" onClick={() => setSort((s) => ({ k, desc: s.k === k ? !s.desc : k !== 'name' && k !== 'sid' }))}>{label}{sort.k === k ? (sort.desc ? ' ▼' : ' ▲') : ''}</button>
     </th>
   );
+  // 중간점검(카드 3장마다): 단원별 마친 묶음 수(콘텐츠에 중간점검이 있는 과목만 칸을 둔다)
+  const mids = hasMids(course);
+  const midHead = mids ? units.map((u) => `${u} 중간점검(/${midIdsOf(course, u).length})`) : [];
+  const midCells = (s: CgStudent) => (mids ? units.map((u) => (midIdsOf(course, u).length ? s.mids[u] : '')) : []);
   const scHead = sc ? units.flatMap((u) => [`${u} 실력점검 최고(/${sc.size})`, `${u} 실력점검 누적`, `${u} 실력점검 횟수`]) : [];
   const scCells = (s: CgStudent) => (sc ? units.flatMap((u) => {
     const c = s.state.checks?.[u];
     return [c?.best ?? '', c?.sum ?? '', c?.n ?? 0];
   }) : []);
   const csv = () => downloadText(`${course.name.replace(/\s/g, '')}_반현황_${today()}.csv`, toCsv(
-    ['이름', '이메일', ...CSV_SID_HEADER, '식물', `통과(/${total})`, ...units.map((u) => `${u} 레벨`), ...scHead, '모의 최고', '모의 응시', '오답', '잠김(지금)', '단원 초기화', '최근 활동'],
-    list.map((s) => [s.name, s.email, ...csvSid(s.sid), PLANT_STAGES[s.plant], s.passed, ...units.map((u) => s.levels[u]), ...scCells(s), s.mockBest, s.state.mock.length, s.wrong, lockSum(s), resetSum(s), fmt(s.lastAt)]),
+    ['이름', '이메일', ...CSV_SID_HEADER, '식물', `통과(/${total})`, ...units.map((u) => `${u} 레벨`), ...midHead, ...scHead, '모의 최고', '모의 응시', '오답', '잠김(지금)', '단원 초기화', '최근 활동'],
+    list.map((s) => [s.name, s.email, ...csvSid(s.sid), PLANT_STAGES[s.plant], s.passed, ...units.map((u) => s.levels[u]), ...midCells(s), ...scCells(s), s.mockBest, s.state.mock.length, s.wrong, lockSum(s), resetSum(s), fmt(s.lastAt)]),
   ));
   const shownQ = allQ ? qstats.slice(0, 30) : qstats.slice(0, 8);
   const sel = open ? all.find((s) => s.id === open) : undefined;
@@ -165,20 +169,21 @@ export function CourseClass({ course }: { course: CourseConfig }) {
             <h2>단원별 통과율</h2>
             <div className="table-wrap">
               <table className="data t-unit-table">
-                <thead><tr><th scope="col">단원</th>{[1, 2, 3, 4, 5].map((lv) => <th scope="col" key={lv} title={CG_LEVEL_NAME[lv as CgLevel]}>{lv}단계</th>)}<th scope="col">평균</th><th scope="col" title="지금 잠김 합계 / 초기화된 학생">잠김·초기화</th></tr></thead>
+                <thead><tr><th scope="col">단원</th>{[1, 2, 3, 4, 5].map((lv) => <th scope="col" key={lv} title={CG_LEVEL_NAME[lv as CgLevel]}>{lv}단계</th>)}<th scope="col">평균</th>{mids && <th scope="col" title="학생 1명이 마친 중간점검 수(평균) / 그 단원 중간점검 수">중간점검</th>}<th scope="col" title="지금 잠김 합계 / 초기화된 학생">잠김·초기화</th></tr></thead>
                 <tbody>
                   {ustats.map((u) => (
                     <tr key={u.unitId}>
                       <th scope="row" title={course.unitById(u.unitId)?.title}>{u.unitId.replace('U', '')}. {course.unitById(u.unitId)?.title}</th>
                       {u.passRate.map((r, i) => <td key={i} className="num t-rate" style={{ ['--r' as string]: r }}>{pct(r)}</td>)}
                       <td className="num">{u.avgLevel.toFixed(1)}</td>
+                      {mids && <td className="num">{u.midTotal ? `${u.midAvg.toFixed(1)}/${u.midTotal}` : '-'}</td>}
                       <td className="num">{u.locksNow} · {u.studentsReset}명</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="small muted" style={{ margin: '0.5rem 0 0' }}>통과율 = 그 단계를 통과한 학생 비율{sc ? `(5단계 실력점검은 한 번 이상 푼 학생 비율)` : ''}. 잠김은 마지막 초기화 이후 합계, 초기화는 5번 잠겨 단원 기록이 지워진 학생 수예요.</p>
+            <p className="small muted" style={{ margin: '0.5rem 0 0' }}>통과율 = 그 단계를 통과한 학생 비율{sc ? `(5단계 실력점검은 한 번 이상 푼 학생 비율)` : ''}.{mids ? ' 중간점검 = 학생이 마친 중간점검 수의 평균 / 그 단원 중간점검 수(1단계는 카드와 중간점검을 모두 마쳐야 통과).' : ''} 잠김은 마지막 초기화 이후 합계, 초기화는 5번 잠겨 단원 기록이 지워진 학생 수예요.</p>
           </div>
           {sc && (
             <div className="panel t-wide">
@@ -263,6 +268,7 @@ export function CourseClass({ course }: { course: CourseConfig }) {
 
 function CourseStudentDrawer({ course, s, onClose }: { course: CourseConfig; s: CgStudent; onClose: () => void }) {
   const d = useMemo(() => studentDetail(s, course), [s, course]);
+  const mids = hasMids(course);
   return (
     <Drawer title={s.name} sub={`${s.email}${s.sid ? ` · 학번 ${s.sid.year} · ${studentNoText(s.sid)}` : ''} · 최근 활동 ${fmt(s.lastAt)}`} onClose={onClose}>
       <div className="kpis">
@@ -275,7 +281,7 @@ function CourseStudentDrawer({ course, s, onClose }: { course: CourseConfig; s: 
         <h3>단원 × 단계</h3>
         <div className="table-wrap">
           <table className="data t-detail">
-            <thead><tr><th scope="col">단원</th>{[1, 2, 3, 4, 5].map((lv) => <th scope="col" key={lv} title={CG_LEVEL_NAME[lv as CgLevel]}>{lv}단계</th>)}<th scope="col">카드</th><th scope="col">잠김</th><th scope="col">초기화</th></tr></thead>
+            <thead><tr><th scope="col">단원</th>{[1, 2, 3, 4, 5].map((lv) => <th scope="col" key={lv} title={CG_LEVEL_NAME[lv as CgLevel]}>{lv}단계</th>)}<th scope="col">카드</th>{mids && <th scope="col">중간점검</th>}<th scope="col">잠김</th><th scope="col">초기화</th></tr></thead>
             <tbody>
               {d.units.map((u) => (
                 <tr key={u.unitId}>
@@ -286,6 +292,7 @@ function CourseStudentDrawer({ course, s, onClose }: { course: CourseConfig; s: 
                     </td>
                   ))}
                   <td className="num">{u.cards}</td>
+                  {mids && <td className="num">{u.midsTotal ? `${u.mids}/${u.midsTotal}` : '-'}</td>}
                   <td className="num">{u.locks}/{LOCK_LIMIT}</td>
                   <td className="num" title={u.lastResetAt ? `마지막 초기화 ${fmt(u.lastResetAt)}` : undefined}>{u.resets || '-'}</td>
                 </tr>

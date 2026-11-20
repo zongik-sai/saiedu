@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 
 /**
  * 배포 경로(base)를 결정하는 유일한 곳.
- * - BASE_PATH 환경변수가 있으면 그대로 사용 (예: /sql-forest/). GitHub Actions에서는
+ * - BASE_PATH 환경변수가 있으면 그대로 사용 (예: /saiedu/). GitHub Actions에서는
  *   actions/configure-pages 의 base_path 출력을 BASE_PATH로 넘긴다.
  * - 없으면 '/' (로컬 개발, 사용자 사이트, 커스텀 도메인)
  */

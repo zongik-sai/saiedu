@@ -72,12 +72,14 @@ export interface CourseInput {
 /** 단원 목록에서 과목 정의를 만든다(ID 찾기 표는 Map이라 'constructor' 같은 키는 undefined) */
 export function makeCourse(c: CourseInput): CourseConfig {
   const unitMap = new Map(c.units.map((u) => [u.id as string, u]));
-  const mcqMap = new Map(c.units.flatMap((u) => [...u.basic, ...u.check]).map((q) => [q.id, q]));
+  // 중간점검 문항도 찾을 수 있게(오답노트·선생님 화면). 모의고사·실력점검은 u.basic·u.check만 쓴다
+  const mcqMap = new Map(c.units.flatMap((u) => [...u.basic, ...u.check, ...(u.mids ?? []).flatMap((g) => g.bank)]).map((q) => [q.id, q]));
   const labels = new Map(c.areas.map((a) => [a.id, a.label]));
   const unitIds: CgUnitId[] = c.units.map((u) => u.id);
   return {
     id: c.id, name: c.name, basePath: c.basePath, ...(c.basis ? { basis: c.basis } : {}),
     units: c.units, unitIds, totalSteps: unitIds.length * 5,
+    midGroups: Object.fromEntries(c.units.map((u) => [u.id, (u.mids ?? []).map((g) => g.id)])),
     unitById: (id) => unitMap.get(id), mcqById: (id) => mcqMap.get(id),
     areas: c.areas, areaLabel: (id) => labels.get(id) ?? id,
     storage: c.storage ?? c.id, remote: c.remote, mockSeed: c.mockSeed ?? c.id, size: c.size ?? 'full', pass: c.pass ?? CG_PASS,

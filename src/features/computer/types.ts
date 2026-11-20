@@ -1,3 +1,5 @@
+import type { CardMatchData, MidGroup } from '../../lib/concepts';
+
 /**
  * 단원 × 5단계 과목(컴퓨터 일반·네트워크·프로그래밍·Data) 공통 콘텐츠 타입(앱 내부 표준 형태).
  * 컴퓨터 일반 원본(pc_bank.json: 선생님의 'PC정비사 자기학습' 페이지 데이터)과 새 과목 원본(courses/<과목>/U1~U8.json)은
@@ -24,11 +26,11 @@ export type CgLevel = 1 | 2 | 3 | 4 | 5;
 export const CG_LEVELS: CgLevel[] = [1, 2, 3, 4, 5];
 export const CG_LEVEL_NAME: Record<CgLevel, string> = { 1: '이론·개념 맞추기', 2: '전체 개념 끼워맞추기', 3: '기초 객관식', 4: '단원 요약', 5: '실력점검' };
 
-/** 카드 한 장을 읽고 푸는 개념 맞추기: 뜻 3개 ↔ 용어 3개(+헷갈리는 용어 1개) */
-export interface CgCardMatch {
-  pairs: { term: string; desc: string }[];
-  distractor: string;
-}
+/**
+ * 카드 한 장을 읽고 푸는 개념 맞추기(앱 표준 형태, src/lib/concepts.ts normalizeMatch):
+ * 새 형식은 뜻 5개 ↔ 용어 5개 + 난이도별 함정(쉬움 1 · 보통 3 · 어려움 5), 예전 형식(뜻 3개 + 함정 1개)은 level 없이 distractors: [함정]
+ */
+export type CgCardMatch = CardMatchData;
 
 export interface CgTable {
   caption?: string;
@@ -45,7 +47,7 @@ export interface CgCard {
   tip?: string;
   /** 시험 대비 확장 카드 */
   ext: boolean;
-  /** 카드를 읽은 뒤 푸는 개념 맞추기(컴퓨터 일반은 card_match.json, 새 과목은 카드 원본의 match) */
+  /** 카드를 읽은 뒤 푸는 개념 맞추기(컴퓨터 일반은 content/cg/U<n>.json의 match, 새 과목은 카드 원본의 match) */
   match?: CgCardMatch;
   /** 코드 예시(새 과목, 선택) */
   code?: string;
@@ -62,8 +64,11 @@ export interface CgBlank {
 export interface CgMcq {
   id: string;
   unitId: CgUnitId;
-  /** 기초(3단계) / 실력점검(5단계) */
-  set: 'basic' | 'check';
+  /**
+   * 기초(3단계) / 실력점검(5단계) / 중간점검(1단계, 카드 3장마다 묶음 문제은행). 중간점검 문항은 오답노트·문항 찾기에만 쓰고
+   * 모의고사·실력점검·단계 문항 수에는 넣지 않는다(u.basic·u.check와 따로 u.mids에 있음)
+   */
+  set: 'basic' | 'check' | 'mid';
   question: string;
   /** 문제에 딸린 코드(새 과목, 선택) */
   code?: string;
@@ -73,7 +78,12 @@ export interface CgMcq {
   area: CgArea;
   /** 실력점검 유형: 계산·응용·부정형·비교·확장 */
   tag?: string;
+  /** 중간점검 문항이 다루는 카드(전체 카드 ID 'U3-t2') */
+  card?: string;
 }
+
+/** 중간점검 묶음: ID 'U3-m1', 카드 3장(남는 카드가 있으면 2·4장), 문제은행(중간점검 문항 'U3-m1-q1' …) */
+export type CgMidGroup = MidGroup<CgMcq>;
 
 export interface CgSummary {
   keys: { k: string; v: string }[];
@@ -93,6 +103,8 @@ export interface CgUnit {
   basic: CgMcq[];
   summary: CgSummary;
   check: CgMcq[];
+  /** 카드 3장마다 중간점검(원본에 mid가 아직 없는 단원은 빈 배열 → 예전처럼 카드만으로 1단계 통과) */
+  mids: CgMidGroup[];
 }
 
 /** 단계별 통과 기준 */

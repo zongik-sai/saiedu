@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { STAGE_COUNTS, UNIT_STAGES, type StageMatch } from '../../src/content/stages';
+import { readFileSync } from 'node:fs';
+import { STAGE_COUNTS, UNIT_STAGES } from '../../src/content/stages';
+import { checkMatch5, checkMid, type RawMatch5, type RawMidGroup } from './conceptRules';
 import { UNIT_IDS } from '../../src/content';
 import { ALL_DATASETS, seedSql } from '../../src/sql/datasets';
 import { loadSql } from './sqljs';
@@ -9,7 +11,11 @@ import { guardSql } from '../../src/sql/guard';
  * 데이터베이스 단원 단계 콘텐츠 검사(단원별: npx vitest run tests/unit/dbStages.test.ts -t U03).
  * 형식·길이·짝 맞추기 규칙과, 실습 SQL이 실제 SQLite(sql.js)에서 실행되는지 확인한다.
  */
-function checkMatch(m: StageMatch, text: string, where: string) {
+/** 원본 JSON(개념 맞추기·중간점검 규칙은 conceptRules.ts, 앱 형태로 바뀌기 전 그대로 검사) */
+const rawOf = (u: string) => JSON.parse(readFileSync(`src/content/stages/${u}.json`, 'utf8')) as { cards: { id: string; match: RawMatch5 }[]; mid?: RawMidGroup[] };
+
+/** 실습 맞추기(SQL 조각 3개 + 함정 1개, 개념 맞추기와 달리 예전 형식 그대로) */
+function checkMatch(m: { pairs: { term: string; desc: string }[]; distractor: string }, text: string, where: string) {
   expect(m.pairs, where).toHaveLength(3);
   const terms = m.pairs.map((p) => p.term);
   expect(new Set(terms).size, `${where} 용어 중복`).toBe(3);
@@ -44,8 +50,12 @@ describe.each(UNIT_IDS)('%s 단계 콘텐츠', (u) => {
       if (c.table) for (const r of c.table.rows) expect(r.length, `${c.id} 표 열 수`).toBe(c.table.header.length);
       if (c.tip) expect(c.tip.length, `${c.id} 팁 길이`).toBeLessThanOrEqual(90);
       const text = [c.title, ...c.points, c.tip ?? '', ...(c.table ? [...c.table.header, ...c.table.rows.flat()] : [])].join('\n');
-      checkMatch(c.match, text, c.id);
+      checkMatch5(rawOf(u).cards[i].match, text, c.id);
     });
+  });
+  it(`${u} 중간점검: 카드 3장마다 문제은행`, () => {
+    const r = rawOf(u);
+    checkMid(r.mid, r.cards.map((c) => c.id), u, `${u}-`);
   });
   it(`${u} 개념 점검: 10문항, 보기 4개, 정답 고르게`, () => {
     expect(st.quiz).toHaveLength(10);

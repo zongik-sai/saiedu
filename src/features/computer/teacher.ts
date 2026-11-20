@@ -31,7 +31,16 @@ export interface CgStudent {
   /** 실력점검(selfCheck 과목) 모든 단원의 누적 합계 점수·응시 횟수(다른 과목은 0) */
   checkSum: number;
   checkN: number;
+  /** 단원별 마친 중간점검 묶음 수(과목 콘텐츠의 묶음 기준) */
+  mids: Record<CgUnitId, number>;
 }
+
+/** 단원의 중간점검 묶음 ID(과목 콘텐츠). 모르면 빈 배열 */
+export const midIdsOf = (shape: CourseShape, u: CgUnitId): readonly string[] => shape.midGroups?.[u] ?? [];
+/** 학생이 마친 그 단원 중간점검 묶음 수(콘텐츠의 묶음만 센다) */
+export const midsDone = (st: CgState, shape: CourseShape, u: CgUnitId) => midIdsOf(shape, u).filter((id) => Object.hasOwn(st.cards, id)).length;
+/** 과목에 중간점검이 하나라도 있는지(선생님 화면·CSV에 칸을 둘지) */
+export const hasMids = (shape: CourseShape) => shape.unitIds.some((u) => midIdsOf(shape, u).length > 0);
 
 export function toStudents(rows: CgClassRow[], shape: CourseShape = CG_SHAPE): CgStudent[] {
   return rows.map((r) => {
@@ -44,6 +53,7 @@ export function toStudents(rows: CgClassRow[], shape: CourseShape = CG_SHAPE): C
       wrong: activeWrongIds(s).length, lastAt: r.updated_at,
       checkSum: Object.values(s.checks ?? {}).reduce((a, c) => a + (c?.sum ?? 0), 0),
       checkN: Object.values(s.checks ?? {}).reduce((a, c) => a + (c?.n ?? 0), 0),
+      mids: Object.fromEntries(shape.unitIds.map((u) => [u, midsDone(s, shape, u)])) as Record<CgUnitId, number>,
     };
   });
 }
@@ -131,7 +141,7 @@ export function downloadText(filename: string, text: string, type = 'text/csv;ch
 
 const LV = [1, 2, 3, 4, 5] as const;
 
-/** 단원별 반 통계: 단계별 통과율(0~1), 평균 레벨, 지금 잠김 합계, 초기화 합계와 초기화된 학생 수 */
+/** 단원별 반 통계: 단계별 통과율(0~1), 평균 레벨, 지금 잠김 합계, 초기화 합계와 초기화된 학생 수, 중간점검(묶음 수·평균 마친 수) */
 export interface UnitClassStat {
   unitId: CgUnitId;
   passRate: number[];
@@ -139,6 +149,8 @@ export interface UnitClassStat {
   locksNow: number;
   resets: number;
   studentsReset: number;
+  midTotal: number;
+  midAvg: number;
 }
 
 export function unitClassStats(students: CgStudent[], shape: CourseShape = CG_SHAPE): UnitClassStat[] {
@@ -150,6 +162,8 @@ export function unitClassStats(students: CgStudent[], shape: CourseShape = CG_SH
     locksNow: students.reduce((a, s) => a + (s.state.locks[u]?.length ?? 0), 0),
     resets: students.reduce((a, s) => a + (s.state.resets[u]?.n ?? 0), 0),
     studentsReset: students.filter((s) => (s.state.resets[u]?.n ?? 0) > 0).length,
+    midTotal: midIdsOf(shape, u).length,
+    midAvg: n ? students.reduce((a, s) => a + midsDone(s.state, shape, u), 0) / n : 0,
   }));
 }
 
@@ -182,6 +196,9 @@ export interface StudentUnitDetail {
   levels: { lv: number; passed: boolean; best?: number; total?: number; passedAt?: string; lastAt?: string }[];
   /** 개념 맞추기를 마친 카드 수 */
   cards: number;
+  /** 마친 중간점검 묶음 수 / 그 단원 묶음 수(콘텐츠에 없으면 0) */
+  mids: number;
+  midsTotal: number;
   /** 마지막 초기화 이후 잠김 횟수 */
   locks: number;
   /** 단원 초기화 횟수와 마지막 시각 */
@@ -199,6 +216,8 @@ export function studentDetail(s: CgStudent, shape: CourseShape = CG_SHAPE) {
       return { lv, passed: !!r?.passedAt, ...(r?.best !== undefined ? { best: r.best } : {}), ...(r?.total !== undefined ? { total: r.total } : {}), ...(r?.passedAt ? { passedAt: r.passedAt } : {}), ...(r?.lastAt ? { lastAt: r.lastAt } : {}) };
     }),
     cards: Object.keys(st.cards).filter((k) => k.startsWith(`${u}-t`)).length,
+    mids: midsDone(st, shape, u),
+    midsTotal: midIdsOf(shape, u).length,
     locks: st.locks[u]?.length ?? 0,
     resets: st.resets[u]?.n ?? 0,
     ...(st.resets[u]?.at ? { lastResetAt: st.resets[u]!.at } : {}),

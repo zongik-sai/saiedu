@@ -11,6 +11,7 @@ import {
 } from '../progress/model';
 import { STAGE_COUNTS, quizNeed } from '../../content/stages/meta';
 import { StageStatus } from './StageStatus';
+import { useStageMidIds } from './useStageMids';
 import { ActivityRunner } from './ActivityRunner';
 import { QuestionCard, type Graded } from './QuestionCard';
 import { useLiveDetail } from '../monitor/liveStore';
@@ -44,12 +45,20 @@ export function UnitPage() {
   const { state } = useLearner();
   if (!isUnitId(unitId)) return <Navigate to="/garden" replace />;
   if (!isUnitUnlocked(state, unitId)) return <LockedNotice />;
+  return <UnitPageBody unitId={unitId} />;
+}
+
+function UnitPageBody({ unitId }: { unitId: UnitId }) {
+  const { state } = useLearner();
   const u = UNIT_BY_ID[unitId];
   const acts = activitiesOf(unitId);
   const ch = challengeOf(unitId);
   const score = unitCheckpointScore(state, unitId);
   const st = unitStatus(state, unitId);
   const nu = nextUnit(unitId);
+  // 1단계 중간점검 묶음 수(단계 콘텐츠를 불러온 뒤 안내에 붙인다)
+  const midIds = useStageMidIds(unitId);
+  const mids = midIds?.length ?? 0;
   return (
     <div className="page page-narrow stack">
       <Crumbs unitId={unitId} />
@@ -62,7 +71,7 @@ export function UnitPage() {
       <ol className="cg-levels">
         {STAGE_NOS.map((n) => {
           const st4 = n === 4;
-          const detail = n === 1 ? `이론 카드 ${STAGE_COUNTS[unitId].cards}장 · 카드마다 개념 맞추기` :
+          const detail = n === 1 ? `이론 카드 ${STAGE_COUNTS[unitId].cards}장${mids ? ` + 중간점검 ${mids}번` : ''} · 카드마다 개념 맞추기${mids ? ', 카드 3장마다 10문항 점검' : ''}` :
             n === 2 ? `객관식 ${STAGE_COUNTS[unitId].quiz}문항 · ${quizNeed(STAGE_COUNTS[unitId].quiz)}개 이상` :
             n === 3 ? `실습 예제 ${STAGE_COUNTS[unitId].practice}개 · 실행해 보고 SQL 조각 맞추기` :
             '실습 활동 4개 + 체크포인트(2문항 이상) · 경험치';
@@ -75,7 +84,7 @@ export function UnitPage() {
                 <b>{STAGE_NAME[n]}</b>
                 <span className="small muted">{detail}</span>
               </span>
-              <StageStatus unitId={unitId} n={n} />
+              <StageStatus unitId={unitId} n={n} midIds={n === 1 ? midIds : undefined} />
               {st4 ? (
                 <button type="button" className={`btn btn-small ${open && !passed ? 'btn-primary' : ''}`} onClick={() => { const h = document.getElementById('unit-acts'); h?.scrollIntoView({ block: 'start' }); h?.focus(); }}>
                   {passed ? '다시 보기' : open ? '아래에서 시작' : '살펴보기'}

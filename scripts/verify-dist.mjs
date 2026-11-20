@@ -1,5 +1,5 @@
 // 빌드 결과 경로 검증: 모든 에셋·Worker·WASM URL이 BASE_PATH를 반영하는지 확인한다.
-// 사용: BASE_PATH=/sql-forest/ node scripts/verify-dist.mjs dist
+// 사용: BASE_PATH=/saiedu/ node scripts/verify-dist.mjs dist
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 

@@ -11,8 +11,8 @@ describe('OAuth 루트 callback 복귀 경로', () => {
     expect(sanitizeReturnPath(i)).toBeNull();
   });
   it('code query를 지우고 hash 경로로 복귀, 없으면 대시보드', () => {
-    expect(cleanUrl('/sql-forest/', '/learn/U03')).toBe('/sql-forest/#/learn/U03');
-    expect(cleanUrl('/sql-forest/', 'https://evil.example')).toBe('/sql-forest/#/');
+    expect(cleanUrl('/saiedu/', '/learn/U03')).toBe('/saiedu/#/learn/U03');
+    expect(cleanUrl('/saiedu/', 'https://evil.example')).toBe('/saiedu/#/');
     expect(cleanUrl('/', null)).toBe('/#/');
   });
   it('callback 파라미터 읽기', () => {
@@ -20,6 +20,6 @@ describe('OAuth 루트 callback 복귀 경로', () => {
     expect(readCallbackParams('?error=access_denied&error_description=User+denied')).toEqual({ code: null, error: 'User denied' });
   });
   it('redirectTo는 프로젝트 루트(hash 없음)', () => {
-    expect(appRootUrl('https://owner.github.io', '/sql-forest/')).toBe('https://owner.github.io/sql-forest/');
+    expect(appRootUrl('https://owner.github.io', '/saiedu/')).toBe('https://owner.github.io/saiedu/');
   });
 });

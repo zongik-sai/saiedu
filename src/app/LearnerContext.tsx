@@ -12,6 +12,7 @@ import {
 } from '../features/progress/model';
 import { BADGE_BY_ID, REWARD_BY_ID } from '../features/progress/rewards';
 import { keysWithPrefix, learnerPrefix, readJson, removeRaw, removeWithPrefix, writeJson } from '../lib/storage';
+import { NEW_COURSES } from '../features/computer/courses/defs';
 
 export interface Celebration {
   id: number;
@@ -284,8 +285,9 @@ export function LearnerProvider({ identity, children }: { identity: Identity; ch
       // 실패해도(오프라인 등) 학습 상태의 초기화 표시가 남아 다음 접속 때 syncResets가 마무리한다.
       remote?.dropQueued(unitItems(u).activityIds);
       ledger.forget(unitRewardIds(u));
-      // 풀던 개념 점검(2단계) 초안도 지운다(초기화 뒤 이어 풀어 통과하지 않게)
+      // 풀던 개념 점검(2단계)·중간점검(1단계) 초안도 지운다(초기화 뒤 이어 풀어 통과하지 않게)
       removeWithPrefix(`${prefix}db:quiz:${u}`);
+      removeWithPrefix(`${prefix}db:mid:${u}:`);
       const mark = stateRef.current.unitResets?.[u];
       if (remote && mark) {
         void remote.resetUnit(u, mark.at, mark.n, []).then((ok) => {
@@ -301,8 +303,8 @@ export function LearnerProvider({ identity, children }: { identity: Identity; ch
       const err = await remote.deleteMyData();
       if (err) return err;
     }
-    // 데이터베이스 기록만 지운다: 다른 과목(컴퓨터 일반·네트워크·프로그래밍·Data)의 이 기기 사본은 남긴다
-    const otherSubjects = ['cg:', 'net:', 'prog:', 'data:'].map((s) => prefix + s);
+    // 데이터베이스 기록만 지운다: 다른 과목(컴퓨터 일반·네트워크·프로그래밍·Data·기초 다듬기, 예전 2진법·IP)의 이 기기 사본은 남긴다
+    const otherSubjects = ['cg', ...NEW_COURSES.map((c) => c.id), 'bin', 'ip'].map((s) => `${prefix}${s}:`);
     for (const k of keysWithPrefix(prefix)) if (!otherSubjects.some((o) => k.startsWith(o))) removeRaw(k);
     const fresh = emptyLearnerState(identity.learnerKey);
     stateRef.current = fresh;

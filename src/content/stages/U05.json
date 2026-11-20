@@ -44,6 +44,7 @@
       },
       "tip": "함수 안에 함수도 써요(중첩). UPPER(TRIM(' sql ')) → 'SQL'처럼 안쪽부터 계산해요.",
       "match": {
+        "level": "easy",
         "pairs": [
           {
             "term": "단일행 함수",
@@ -56,9 +57,19 @@
           {
             "term": "REPLACE",
             "desc": "문자열 속 특정 글자를 다른 글자로 바꿈"
+          },
+          {
+            "term": "LENGTH",
+            "desc": "문자열이 몇 글자인지 세어 돌려줌"
+          },
+          {
+            "term": "||",
+            "desc": "두 문자열을 하나로 이어 붙이는 연산자"
           }
         ],
-        "distractor": "집계 함수"
+        "distractors": [
+          "집계 함수"
+        ]
       }
     },
     {
@@ -106,6 +117,7 @@
       },
       "tip": "CEIL은 천장(위로), FLOOR는 바닥(아래로)으로 기억해요.",
       "match": {
+        "level": "easy",
         "pairs": [
           {
             "term": "ROUND",
@@ -118,9 +130,19 @@
           {
             "term": "FLOOR",
             "desc": "주어진 수보다 크지 않은 가장 큰 정수로 내림(예: 2.9 → 2)"
+          },
+          {
+            "term": "ABS",
+            "desc": "수의 부호를 떼고 크기만 남긴 절댓값을 구함"
+          },
+          {
+            "term": "MOD",
+            "desc": "Oracle에서 나눗셈의 나머지를 구하는 함수"
           }
         ],
-        "distractor": "ABS"
+        "distractors": [
+          "LENGTH"
+        ]
       }
     },
     {
@@ -162,10 +184,11 @@
       },
       "tip": "SYSDATE는 괄호 없이, GETDATE()는 괄호를 붙여 써요.",
       "match": {
+        "level": "mid",
         "pairs": [
           {
             "term": "SYSDATE",
-            "desc": "Oracle에서 지금 날짜와 시각을 돌려줌"
+            "desc": "Oracle에서 지금 날짜와 시각을 괄호 없이 돌려줌"
           },
           {
             "term": "GETDATE()",
@@ -174,9 +197,21 @@
           {
             "term": "DATEADD",
             "desc": "SQL Server에서 날짜에 일·월 같은 단위를 정해 더함"
+          },
+          {
+            "term": "EXTRACT",
+            "desc": "Oracle에서 날짜 속 월·연 같은 부분만 꺼냄"
+          },
+          {
+            "term": "strftime",
+            "desc": "SQLite에서 '%m' 같은 형식 문자로 날짜의 월 등을 꺼냄"
           }
         ],
-        "distractor": "EXTRACT"
+        "distractors": [
+          "TO_DATE",
+          "DECODE",
+          "CAST"
+        ]
       }
     },
     {
@@ -214,21 +249,34 @@
       },
       "tip": "환산 점수가 이상하게 정수로만 나오면 정수 나눗셈을 의심하세요.",
       "match": {
+        "level": "mid",
         "pairs": [
           {
             "term": "CAST",
-            "desc": "표준 SQL에서 값을 원하는 자료형으로 직접 바꾸는 함수"
+            "desc": "표준 SQL에서 (값 AS 자료형) 형태로 자료형을 바꾸는 함수"
           },
           {
             "term": "암시적 형변환",
-            "desc": "적어 주지 않아도 DBMS가 스스로 자료형을 맞춰 계산함"
+            "desc": "적어 주지 않아도 DBMS가 스스로 자료형을 맞춰 바꾸는 방식"
           },
           {
             "term": "정수 나눗셈",
             "desc": "정수끼리 나눠 소수 아래가 사라지는 계산"
+          },
+          {
+            "term": "명시적 형변환",
+            "desc": "변환 함수를 SQL에 직접 적어 자료형을 바꾸는 방식"
+          },
+          {
+            "term": "TO_CHAR",
+            "desc": "Oracle에서 숫자나 날짜를 문자로 바꾸는 함수"
           }
         ],
-        "distractor": "TO_DATE"
+        "distractors": [
+          "TO_DATE",
+          "TO_NUMBER",
+          "ROUND"
+        ]
       }
     },
     {
@@ -266,6 +314,7 @@
       },
       "tip": "NULLIF는 NULL을 채우지 않아요. 오히려 같은 값을 NULL로 만들어요!",
       "match": {
+        "level": "hard",
         "pairs": [
           {
             "term": "COALESCE",
@@ -277,10 +326,24 @@
           },
           {
             "term": "NVL",
-            "desc": "Oracle 전용으로, 첫 인자가 NULL이면 둘째 인자를 돌려줌"
+            "desc": "Oracle 전용 두 인자 함수: 첫 인자가 NULL이면 둘째 인자를 돌려줌"
+          },
+          {
+            "term": "ISNULL",
+            "desc": "SQL Server 전용 두 인자 함수: 첫 인자가 NULL이면 둘째 인자를 돌려줌"
+          },
+          {
+            "term": "IFNULL",
+            "desc": "SQLite에서 쓰는 두 인자 함수: 첫 인자가 NULL이면 둘째 인자를 돌려줌"
           }
         ],
-        "distractor": "IS NULL"
+        "distractors": [
+          "IS NULL",
+          "IS NOT NULL",
+          "DECODE",
+          "CAST",
+          "UNKNOWN"
+        ]
       }
     },
     {
@@ -315,21 +378,34 @@
       },
       "tip": "WHEN 순서가 중요해요! 넓은 조건(>= 80)을 먼저 쓰면 90점도 거기서 멈춰요.",
       "match": {
+        "level": "mid",
         "pairs": [
           {
             "term": "ELSE",
             "desc": "맞는 조건이 하나도 없을 때 돌려줄 값을 적는 곳"
           },
           {
+            "term": "THEN",
+            "desc": "조건이 맞았을 때 돌려줄 값을 바로 뒤에 적는 키워드"
+          },
+          {
             "term": "단순 CASE",
-            "desc": "CASE 바로 뒤에 열을 쓰고, 그 값과 같은지만 차례로 비교하는 표준 형태"
+            "desc": "한 열의 값이 정해 둔 값과 같은지만 차례로 비교하는 형태"
+          },
+          {
+            "term": "검색 CASE",
+            "desc": "조건식을 위에서부터 검사해 처음 참인 조건의 값을 고르는 형태"
           },
           {
             "term": "DECODE",
-            "desc": "Oracle 전용 함수로, 값이 같으면 정한 결과를 돌려주는 CASE 축약형"
+            "desc": "값이 같으면 정한 결과를 돌려주는 Oracle 전용 함수"
           }
         ],
-        "distractor": "THEN"
+        "distractors": [
+          "WHEN",
+          "END",
+          "NVL"
+        ]
       }
     },
     {
@@ -395,6 +471,7 @@
       },
       "tip": "헷갈리면 표준 함수(COALESCE·CASE·CAST)를 먼저 떠올리세요. 어디서나 통해요.",
       "match": {
+        "level": "hard",
         "pairs": [
           {
             "term": "LEN",
@@ -407,9 +484,23 @@
           {
             "term": "SUBSTRING",
             "desc": "SQL Server에서 문자열의 일부를 잘라 내는 함수"
+          },
+          {
+            "term": "||",
+            "desc": "Oracle과 SQLite에서 두 문자열을 이어 붙이는 연산자"
+          },
+          {
+            "term": "표준 함수",
+            "desc": "DBMS가 달라도 같은 이름으로 쓸 수 있는 함수"
           }
         ],
-        "distractor": "NVL"
+        "distractors": [
+          "CEILING",
+          "GETDATE()",
+          "DATEADD",
+          "DECODE",
+          "MOD"
+        ]
       }
     }
   ],
@@ -673,6 +764,484 @@
         ],
         "distractor": "THEN '우수'"
       }
+    }
+  ],
+  "mid": [
+    {
+      "id": "U05-m1",
+      "cards": [
+        "U05-t1",
+        "U05-t2",
+        "U05-t3"
+      ],
+      "bank": [
+        {
+          "id": "U05-m1-q1",
+          "card": "U05-t1",
+          "q": "SELECT UPPER('sql') || LOWER('CAMP'); 의 결과는?",
+          "o": [
+            "'SQLcamp'",
+            "'sqlCAMP'",
+            "'SQLCAMP'",
+            "'sqlcamp'"
+          ],
+          "a": 0,
+          "exp": "UPPER는 대문자, LOWER는 소문자로 바꿔요. 'SQL'과 'camp'를 ||로 이어 붙여 'SQLcamp'예요. 'sqlCAMP'는 두 함수의 역할을 거꾸로 본 결과예요."
+        },
+        {
+          "id": "U05-m1-q2",
+          "card": "U05-t1",
+          "q": "SELECT LENGTH(TRIM('  SQL  ')); 의 결과는? (SQL 앞뒤에 공백이 두 칸씩 있어요)",
+          "o": [
+            "2",
+            "3",
+            "5",
+            "7"
+          ],
+          "a": 1,
+          "exp": "안쪽 TRIM이 먼저 앞뒤 공백을 지워 'SQL'이 되고, LENGTH가 글자 수 3을 세요. TRIM 없이 세면 공백 4칸까지 더해 7이에요."
+        },
+        {
+          "id": "U05-m1-q3",
+          "card": "U05-t1",
+          "q": "SUBSTR('데이터베이스', 4, 2) 의 결과는?",
+          "o": [
+            "'터베'",
+            "'이스'",
+            "'베이'",
+            "'데이'"
+          ],
+          "a": 2,
+          "exp": "SUBSTR의 시작 위치는 1부터 세요. 4번째 글자 '베'부터 2글자를 잘라 '베이'예요. 0부터 세면 '이스'로 잘못 고르기 쉬워요."
+        },
+        {
+          "id": "U05-m1-q4",
+          "card": "U05-t1",
+          "q": "다음 중 단일행 함수가 아닌 것은?",
+          "o": [
+            "UPPER",
+            "SUBSTR",
+            "REPLACE",
+            "COUNT"
+          ],
+          "a": 3,
+          "exp": "UPPER·SUBSTR·REPLACE는 행마다 결과를 하나씩 내는 단일행 함수예요. COUNT는 여러 행을 묶어 결과 하나를 내는 집계 함수로 6단원에서 배워요."
+        },
+        {
+          "id": "U05-m1-q5",
+          "card": "U05-t1",
+          "q": "전화번호 '010-1234-5678'에서 '-'를 모두 없애 '01012345678'로 만들려고 해요. 알맞은 식은?",
+          "o": [
+            "REPLACE('010-1234-5678', '-', '')",
+            "TRIM('010-1234-5678')",
+            "SUBSTR('010-1234-5678', 1, 11)",
+            "LOWER('010-1234-5678')"
+          ],
+          "a": 0,
+          "exp": "REPLACE(원본, 찾을 글자, 바꿀 글자)에서 바꿀 글자를 ''(빈 문자열)로 주면 찾은 글자가 지워져요. TRIM은 앞뒤 공백만 지워서 가운데 '-'는 그대로예요."
+        },
+        {
+          "id": "U05-m1-q6",
+          "card": "U05-t2",
+          "q": "ROUND(3.456, 2) 의 결과는?",
+          "o": [
+            "3.45",
+            "3.5",
+            "3",
+            "3.46"
+          ],
+          "a": 3,
+          "exp": "ROUND(x, 2)는 소수 둘째 자리까지 남기도록 셋째 자리(6)에서 반올림해 3.46이에요. 3.45는 반올림하지 않고 버린 값, 3.5는 소수 첫째 자리까지 반올림한 값이에요."
+        },
+        {
+          "id": "U05-m1-q7",
+          "card": "U05-t2",
+          "q": "버스 한 대에 45명이 타요. 학생 100명이 모두 타는 데 필요한 버스 수를 구하는 식은?",
+          "o": [
+            "FLOOR(100 / 45.0)",
+            "ROUND(100 / 45.0, 0)",
+            "CEIL(100 / 45.0)",
+            "ABS(100 / 45.0)"
+          ],
+          "a": 2,
+          "exp": "100 ÷ 45 ≈ 2.22라서 2대로는 10명이 남아요. 남는 학생도 태우려면 무조건 올리는 CEIL로 3대를 구해요. FLOOR와 ROUND는 2가 나와 부족해요."
+        },
+        {
+          "id": "U05-m1-q8",
+          "card": "U05-t2",
+          "q": "ABS(-7) + ABS(3) 의 결과는?",
+          "o": [
+            "-4",
+            "10",
+            "4",
+            "-10"
+          ],
+          "a": 1,
+          "exp": "ABS는 부호를 떼어 절댓값을 돌려줘요. 7 + 3 = 10이에요. -4는 절댓값을 구하지 않고 -7 + 3을 그대로 계산한 값이에요."
+        },
+        {
+          "id": "U05-m1-q9",
+          "card": "U05-t2",
+          "q": "SQLite에서 SELECT 17 % 5; 의 결과는?",
+          "o": [
+            "2",
+            "3",
+            "3.4",
+            "12"
+          ],
+          "a": 0,
+          "exp": "%는 나눗셈의 나머지를 구해요. 17 = 5 × 3 + 2라서 2예요. 3은 몫이에요. Oracle에서는 같은 계산을 MOD(17, 5)로 써요."
+        },
+        {
+          "id": "U05-m1-q10",
+          "card": "U05-t2",
+          "q": "숫자 함수에 대한 설명으로 옳지 않은 것은?",
+          "o": [
+            "ROUND(85.67, 0)의 결과는 86이다",
+            "FLOOR는 아래쪽 정수로 내린다",
+            "SQL Server는 올림을 CEILING이라고 쓴다",
+            "CEIL(2.1)의 결과는 2이다"
+          ],
+          "a": 3,
+          "exp": "CEIL은 소수가 조금이라도 있으면 올려서 CEIL(2.1)은 3이에요. 2가 나오는 것은 내림인 FLOOR(2.1)이에요."
+        },
+        {
+          "id": "U05-m1-q11",
+          "card": "U05-t3",
+          "q": "Oracle에서 현재 날짜와 시각을 구하는 것은?",
+          "o": [
+            "GETDATE()",
+            "DATE('now')",
+            "SYSDATE",
+            "DATEADD"
+          ],
+          "a": 2,
+          "exp": "Oracle은 괄호 없이 SYSDATE를 써요. GETDATE()는 SQL Server, DATE('now')는 SQLite의 방법이고, DATEADD는 날짜에 값을 더하는 SQL Server 함수예요."
+        },
+        {
+          "id": "U05-m1-q12",
+          "card": "U05-t3",
+          "q": "SQLite에서 DATE('2026-03-28', '+7 days') 의 결과는?",
+          "o": [
+            "'2026-03-35'",
+            "'2026-04-04'",
+            "'2026-04-03'",
+            "'2026-03-21'"
+          ],
+          "a": 1,
+          "exp": "3월은 31일까지라 3월 28일의 7일 뒤는 4월 4일이에요. 날짜 함수가 달이 바뀌는 것까지 계산해 주니 '2026-03-35' 같은 날짜는 나오지 않아요."
+        },
+        {
+          "id": "U05-m1-q13",
+          "card": "U05-t3",
+          "q": "SQL Server에서 오늘부터 10일 뒤의 날짜를 구하는 식은?",
+          "o": [
+            "DATEADD(DAY, 10, GETDATE())",
+            "DATEADD(GETDATE(), 10)",
+            "SYSDATE + 10",
+            "DATE(GETDATE(), '+10 days')"
+          ],
+          "a": 0,
+          "exp": "SQL Server는 DATEADD(단위, 더할 수, 날짜) 순서로 써요. SYSDATE + 10은 Oracle 방식이고, DATE(…, '+10 days')는 SQLite 방식이에요."
+        },
+        {
+          "id": "U05-m1-q14",
+          "card": "U05-t3",
+          "q": "날짜에서 '월'만 꺼내는 방법을 DBMS와 바르게 짝지은 것은?",
+          "o": [
+            "SQL Server — EXTRACT(MONTH FROM 날짜)",
+            "SQLite — MONTH(날짜)",
+            "Oracle — strftime('%m', 날짜)",
+            "Oracle — EXTRACT(MONTH FROM 날짜)"
+          ],
+          "a": 3,
+          "exp": "Oracle은 EXTRACT(MONTH FROM 날짜), SQL Server는 MONTH(날짜), SQLite는 strftime('%m', 날짜)로 월을 꺼내요. 같은 일이라도 DBMS마다 이름이 달라요."
+        },
+        {
+          "id": "U05-m1-q15",
+          "card": "U05-t3",
+          "q": "현재 날짜를 돌려주는 함수에 대한 설명으로 옳은 것은?",
+          "o": [
+            "한 번 정해지면 항상 같은 날짜를 돌려준다",
+            "SQL Server의 GETDATE는 괄호 없이 쓴다",
+            "실행할 때마다 결과가 달라질 수 있다",
+            "Oracle의 SYSDATE는 SQLite에서도 실행된다"
+          ],
+          "a": 2,
+          "exp": "현재 날짜·시각은 실행하는 순간의 값이라 실행할 때마다 바뀌어요. GETDATE()는 괄호를 붙여 쓰고, SYSDATE는 SQLite에서 실행되지 않아요."
+        }
+      ]
+    },
+    {
+      "id": "U05-m2",
+      "cards": [
+        "U05-t4",
+        "U05-t5",
+        "U05-t6",
+        "U05-t7"
+      ],
+      "bank": [
+        {
+          "id": "U05-m2-q1",
+          "card": "U05-t4",
+          "q": "SQLite에서 SELECT 1 / 4 * 100; 의 결과는?",
+          "o": [
+            "0",
+            "25",
+            "25.0",
+            "0.25"
+          ],
+          "a": 0,
+          "exp": "정수끼리 나눈 1 / 4는 소수가 버려져 0이 되고, 0 × 100도 0이에요. 25를 얻으려면 1.0 / 4 * 100이나 CAST(1 AS REAL) / 4 * 100처럼 실수로 바꿔요."
+        },
+        {
+          "id": "U05-m2-q2",
+          "card": "U05-t4",
+          "q": "SQLite에서 SELECT '5' + 3; 을 실행하면 8이 나와요. 이렇게 된 까닭으로 알맞은 것은?",
+          "o": [
+            "CAST를 직접 쓴 명시적 형변환",
+            "정수 나눗셈으로 소수가 버려진 결과",
+            "문자 '5'와 3을 이어 붙인 결과",
+            "DBMS가 알아서 바꾼 암시적 형변환"
+          ],
+          "a": 3,
+          "exp": "변환 함수를 쓰지 않았는데 DBMS가 문자 '5'를 숫자 5로 바꿔 계산했어요. 이것이 암시적 형변환이에요. 이어 붙였다면 '53'이 나왔을 거예요."
+        },
+        {
+          "id": "U05-m2-q3",
+          "card": "U05-t4",
+          "q": "표준 SQL의 CAST를 바르게 쓴 것은?",
+          "o": [
+            "CAST(INTEGER, '25')",
+            "CAST('25' TO INTEGER)",
+            "CAST('25' AS INTEGER)",
+            "CAST(INTEGER AS '25')"
+          ],
+          "a": 2,
+          "exp": "CAST는 CAST(값 AS 자료형) 형태라 바꿀 값을 먼저, AS 뒤에 자료형을 써요. 자료형을 앞에 쓰고 쉼표로 잇는 것은 SQL Server의 CONVERT 모양이에요."
+        },
+        {
+          "id": "U05-m2-q4",
+          "card": "U05-t4",
+          "q": "Oracle에서 문자 '2026-03-05'를 날짜로 바꾸는 함수는?",
+          "o": [
+            "TO_CHAR",
+            "TO_DATE",
+            "TO_NUMBER",
+            "SYSDATE"
+          ],
+          "a": 1,
+          "exp": "TO_DATE는 문자를 날짜로, TO_CHAR는 숫자·날짜를 문자로, TO_NUMBER는 문자를 숫자로 바꿔요. TO_ 뒤의 말이 바뀐 결과의 자료형이에요."
+        },
+        {
+          "id": "U05-m2-q5",
+          "card": "U05-t4",
+          "q": "형변환과 나눗셈에 대한 설명으로 옳지 않은 것은?",
+          "o": [
+            "Oracle은 7 / 2를 3으로 계산한다",
+            "SQLite는 7 / 2를 3으로 계산한다",
+            "SQL Server는 CAST와 CONVERT로 자료형을 바꾼다",
+            "SQLite에서 CAST(7 AS REAL) / 2는 3.5이다"
+          ],
+          "a": 0,
+          "exp": "Oracle은 정수끼리 나눠도 소수까지 계산해 3.5예요. 소수를 버려 3이 되는 것은 SQLite·SQL Server의 정수 나눗셈이에요."
+        },
+        {
+          "id": "U05-m2-q6",
+          "card": "U05-t5",
+          "q": "점수(score)가 NULL이고 보충 점수(extra)가 60일 때 COALESCE(score, extra, 0) 의 결과는?",
+          "o": [
+            "0",
+            "NULL",
+            "오류",
+            "60"
+          ],
+          "a": 3,
+          "exp": "COALESCE는 왼쪽부터 보며 처음으로 NULL이 아닌 값을 돌려줘요. score는 NULL이라 넘어가고 extra의 60이 결과예요. 0은 extra까지 NULL일 때 나와요."
+        },
+        {
+          "id": "U05-m2-q7",
+          "card": "U05-t5",
+          "q": "응시자 수(cnt)가 0일 때 total / NULLIF(cnt, 0) 의 결과는?",
+          "o": [
+            "0",
+            "total 값 그대로",
+            "NULL",
+            "0으로 나누기 오류"
+          ],
+          "a": 2,
+          "exp": "cnt가 0이면 NULLIF(cnt, 0)이 NULL이 되고, NULL로 나눈 결과도 NULL이에요. 그래서 0으로 나누기 오류 대신 NULL이 나와요."
+        },
+        {
+          "id": "U05-m2-q8",
+          "card": "U05-t5",
+          "q": "Oracle의 NVL과 같은 역할의 함수를 DBMS와 바르게 짝지은 것은?",
+          "o": [
+            "SQL Server — IFNULL",
+            "SQL Server — ISNULL",
+            "SQLite — ISNULL",
+            "SQLite — NULLIF"
+          ],
+          "a": 1,
+          "exp": "같은 역할의 두 인자 함수는 Oracle NVL, SQL Server ISNULL, SQLite IFNULL이에요. NULLIF는 같은 값을 NULL로 만드는 전혀 다른 함수예요."
+        },
+        {
+          "id": "U05-m2-q9",
+          "card": "U05-t5",
+          "q": "COALESCE와 NULLIF에 대한 설명으로 옳은 것은?",
+          "o": [
+            "COALESCE에는 인자를 3개 이상 넣을 수 있다",
+            "NULLIF는 NULL을 0으로 바꿔 준다",
+            "COALESCE는 Oracle에서만 쓰는 함수다",
+            "NULLIF(a, b)는 두 값이 다르면 NULL을 돌려준다"
+          ],
+          "a": 0,
+          "exp": "COALESCE(a, b, c, …)처럼 인자를 여러 개 넣을 수 있는 표준 함수예요. NULLIF는 두 값이 같을 때 NULL을 돌려주고, NULL을 채우는 일은 하지 않아요."
+        },
+        {
+          "id": "U05-m2-q10",
+          "card": "U05-t5",
+          "q": "회원의 별명(nickname)이 없으면 이름(name)을, 둘 다 없으면 '손님'을 보여 주려고 해요. 알맞은 식은?",
+          "o": [
+            "COALESCE('손님', name, nickname)",
+            "NULLIF(nickname, name)",
+            "NULLIF(nickname, '손님')",
+            "COALESCE(nickname, name, '손님')"
+          ],
+          "a": 3,
+          "exp": "COALESCE는 적은 순서대로 처음 NULL이 아닌 값을 골라요. 별명 → 이름 → '손님' 순서로 써야 해요. '손님'을 맨 앞에 두면 항상 '손님'만 나와요."
+        },
+        {
+          "id": "U05-m2-q11",
+          "card": "U05-t6",
+          "q": "CASE 식에서 ELSE를 쓰지 않았는데 맞는 WHEN 조건이 하나도 없으면 결과는?",
+          "o": [
+            "0",
+            "빈 문자열('')",
+            "NULL",
+            "오류"
+          ],
+          "a": 2,
+          "exp": "ELSE를 생략하면 맞는 조건이 없을 때 NULL이 나와요. 오류가 나거나 0이 되지 않아요. 원하는 값이 있으면 ELSE로 꼭 적어 줘요."
+        },
+        {
+          "id": "U05-m2-q12",
+          "card": "U05-t6",
+          "q": "grade가 2일 때 CASE grade WHEN 1 THEN '신입생' WHEN 3 THEN '졸업반' ELSE '재학생' END 의 결과는?",
+          "o": [
+            "'신입생'",
+            "'재학생'",
+            "'졸업반'",
+            "NULL"
+          ],
+          "a": 1,
+          "exp": "단순 CASE는 grade 값이 WHEN 뒤의 값과 같은지 비교해요. 2는 1도 3도 아니라서 ELSE의 '재학생'이 나와요. ELSE가 없었다면 NULL이었어요."
+        },
+        {
+          "id": "U05-m2-q13",
+          "card": "U05-t6",
+          "q": "단순 CASE와 검색 CASE에 대한 설명으로 옳은 것은?",
+          "o": [
+            "단순 CASE는 한 값과 '같은지'만 비교한다",
+            "검색 CASE는 = 비교만 할 수 있다",
+            "단순 CASE는 WHEN 뒤에 >= 같은 조건식을 쓴다",
+            "두 형태 모두 END를 생략할 수 있다"
+          ],
+          "a": 0,
+          "exp": "단순 CASE는 CASE 뒤의 값과 WHEN 값이 같은지만 봐요. >= 같은 조건을 쓰려면 CASE WHEN 조건 THEN 형태의 검색 CASE를 써요. END는 두 형태 모두 꼭 써요."
+        },
+        {
+          "id": "U05-m2-q14",
+          "card": "U05-t6",
+          "q": "Oracle의 DECODE(grade, 1, '신입생', '재학생')와 같은 결과를 내는 표준 SQL 식은?",
+          "o": [
+            "CASE grade WHEN '신입생' THEN 1 ELSE '재학생' END",
+            "CASE WHEN grade = '신입생' THEN 1 ELSE '재학생' END",
+            "COALESCE(grade, '신입생', '재학생')",
+            "CASE grade WHEN 1 THEN '신입생' ELSE '재학생' END"
+          ],
+          "a": 3,
+          "exp": "DECODE(값, 비교값, 결과, 기본값)는 단순 CASE의 축약형이에요. grade가 1이면 '신입생', 아니면 기본값 '재학생'이에요. 비교값과 결과의 자리를 바꾸면 뜻이 달라져요."
+        },
+        {
+          "id": "U05-m2-q15",
+          "card": "U05-t6",
+          "q": "재고(stock)가 0이면 '품절', 아니면 '판매 중'을 보여 주려고 해요. 바르게 쓴 식은?",
+          "o": [
+            "CASE WHEN stock = 0 ELSE '품절' THEN '판매 중' END",
+            "CASE stock THEN 0 WHEN '품절' ELSE '판매 중' END",
+            "CASE WHEN stock = 0 THEN '품절' ELSE '판매 중' END",
+            "CASE WHEN '품절' THEN stock = 0 ELSE '판매 중' END"
+          ],
+          "a": 2,
+          "exp": "CASE WHEN 조건 THEN 값 ELSE 값 END 순서로 써요. 조건은 WHEN 뒤에, 돌려줄 값은 THEN 뒤에 오고, ELSE는 END 바로 앞에 와요."
+        },
+        {
+          "id": "U05-m2-q16",
+          "card": "U05-t7",
+          "q": "SQL Server에서 문자열의 글자 수를 세는 함수는?",
+          "o": [
+            "LENGTH",
+            "LEN",
+            "SUBSTRING",
+            "COUNT"
+          ],
+          "a": 1,
+          "exp": "SQL Server는 LEN, Oracle과 SQLite는 LENGTH로 글자 수를 세요. COUNT는 행의 개수를 세는 집계 함수예요."
+        },
+        {
+          "id": "U05-m2-q17",
+          "card": "U05-t7",
+          "q": "Oracle의 SUBSTR('SQLD', 2, 2)와 같은 일을 하는 SQL Server 식은?",
+          "o": [
+            "SUBSTRING('SQLD', 2, 2)",
+            "SUBSTR('SQLD', 2, 2)",
+            "LEN('SQLD', 2, 2)",
+            "SUBSTRING('SQLD', 2)"
+          ],
+          "a": 0,
+          "exp": "SQL Server는 SUBSTRING(문자, 시작, 길이)로 잘라요. 결과는 둘 다 'QL'이에요. SUBSTR는 Oracle·SQLite의 이름이고, SQL Server의 SUBSTRING은 길이를 꼭 적어야 해요."
+        },
+        {
+          "id": "U05-m2-q18",
+          "card": "U05-t7",
+          "q": "Oracle·SQL Server·SQLite에서 모두 같은 문법으로 쓰는 표준 기능은?",
+          "o": [
+            "DECODE",
+            "NVL",
+            "GETDATE()",
+            "CASE"
+          ],
+          "a": 3,
+          "exp": "CASE는 표준 SQL이라 세 DBMS 모두 같은 문법으로 써요. DECODE·NVL은 Oracle에서만, GETDATE()는 SQL Server에서만 쓰여요."
+        },
+        {
+          "id": "U05-m2-q19",
+          "card": "U05-t7",
+          "q": "이 과정의 SQLite 실습 화면에서 실행되지 않는 식은?",
+          "o": [
+            "COALESCE(score, 0)",
+            "IFNULL(score, 0)",
+            "NVL(score, 0)",
+            "CAST(score AS REAL)"
+          ],
+          "a": 2,
+          "exp": "NVL은 Oracle 전용이라 SQLite에서 실행되지 않아요. SQLite에서는 IFNULL이나 표준 함수 COALESCE로 같은 일을 해요."
+        },
+        {
+          "id": "U05-m2-q20",
+          "card": "U05-t7",
+          "q": "SQL Server에서 CEIL(2.1)과 같은 결과를 내려면 어떻게 써야 할까요?",
+          "o": [
+            "CEIL(2.1)",
+            "CEILING(2.1)",
+            "FLOOR(2.1)",
+            "ROUND(2.1, 0)"
+          ],
+          "a": 1,
+          "exp": "SQL Server는 올림 함수 이름이 CEILING이에요. CEIL은 Oracle·SQLite의 이름이라 SQL Server에서는 쓰지 않아요. FLOOR(2.1)와 ROUND(2.1, 0)은 2가 나와요."
+        }
+      ]
     }
   ]
 }

@@ -303,33 +303,7 @@ describe('1단계: 카드별 개념 맞추기', () => {
   });
 });
 
-describe('카드별 개념 맞추기 데이터 검증', () => {
-  const text = (c: (typeof CG_UNITS)[number]['cards'][number]) =>
-    [c.title, ...c.points, c.tip ?? '', ...(c.table ? [...c.table.header, ...c.table.rows.flat()] : [])].join('\n');
-  it('모든 카드(110장)에 뜻 3개 + 헷갈리는 용어 1개', () => {
-    const cards = CG_UNITS.flatMap((u) => u.cards);
-    expect(cards.length).toBe(110);
-    for (const c of cards) {
-      expect(c.match, c.id).toBeDefined();
-      expect(c.match!.pairs.length, c.id).toBe(3);
-    }
-  });
-  it('용어는 카드 본문에 그대로 있고, 뜻에 자기 용어·다른 용어가 들어 있지 않으며, 함정은 정답과 다름', () => {
-    for (const u of CG_UNITS) for (const c of u.cards) {
-      const m = c.match!;
-      const terms = m.pairs.map((p) => p.term);
-      expect(new Set(terms).size, c.id).toBe(3);
-      expect(new Set(m.pairs.map((p) => p.desc)).size, c.id).toBe(3);
-      expect(terms, c.id).not.toContain(m.distractor);
-      for (const p of m.pairs) {
-        expect(text(c), `${c.id} ${p.term}`).toContain(p.term);
-        for (const t of terms) expect(p.desc.includes(t), `${c.id}: "${p.desc}" ⊃ "${t}"`).toBe(false);
-        expect(p.desc.length, c.id).toBeGreaterThanOrEqual(8);
-        expect(p.desc.length, c.id).toBeLessThanOrEqual(60);
-      }
-    }
-  });
-});
+// 카드별 개념 맞추기·중간점검 원본 검사는 tests/unit/cgConcepts.test.ts(conceptRules.ts)
 
 describe('단원 집중 학습: 잠김 5번이면 그 단원 초기화', () => {
   const ids = ['U1-t1', 'U1-t2'];

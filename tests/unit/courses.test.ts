@@ -47,9 +47,13 @@ describe('새 형식 원본 → 앱 표준 형태', () => {
     expect(u.id).toBe('U1');
     expect(u.cards.map((c) => c.id)).toEqual(['U1-t1', 'U1-t2']);
     expect(u.cards[0]).toMatchObject({ title: '첫 카드', ext: true, code: 'print("hi")\nfor i in range(3):\n    print(i)' });
+    // 예전 형식(뜻 3개 + 함정 1개)은 난이도 없이 distractors: [함정]으로 읽는다
     expect(u.cards[0].match?.pairs).toHaveLength(3);
-    expect(u.cards[0].match?.distractor).toBe('함정');
+    expect(u.cards[0].match?.distractors).toEqual(['함정']);
+    expect(u.cards[0].match?.level).toBeUndefined();
     expect(u.cards[1].match).toBeUndefined();
+    // 중간점검 원본이 아직 없는 단원은 묶음 없음(예전 규칙)
+    expect(u.mids).toEqual([]);
     expect(u.cards[1].code).toBeUndefined();
     expect(u.cards[1].table).toEqual({ header: ['a', 'b'], rows: [['1', '2']] });
     expect(u.blanks[0].id).toBe('U1-f1');
@@ -94,6 +98,47 @@ describe('새 형식 원본 → 앱 표준 형태', () => {
     expect(NEW_COURSES.filter((c) => c.group === 'foundation').map((c) => [c.id, c.size, c.units.length])).toEqual([['basic', 'foundation', 10]]);
     expect(NEW_COURSES.map((c) => c.id)).not.toContain('bin');
     expect(NEW_COURSES.map((c) => c.id)).not.toContain('ip');
+  });
+});
+
+/** 새 형식(2026-11-17): 카드마다 뜻 5개 + 난이도별 함정, 카드 3장마다 중간점검(mid, 짧은 ID) */
+const pairs5 = (k: string) => Array.from({ length: 5 }, (_, i) => ({ term: `${k}용어${i + 1}`, desc: `${k} 뜻 설명 ${i + 1}번입니다` }));
+function rawUnitNew(n: number, cards = 4): RawUnit {
+  const base = rawUnit(n);
+  const theory = Array.from({ length: cards }, (_, i) => ({
+    id: `t${i + 1}`, title: `카드 ${i + 1}`, points: ['p1', 'p2'], ext: false,
+    match: { level: (['easy', 'mid', 'hard'] as const)[i % 3], pairs: pairs5(`c${i + 1}`), distractors: Array.from({ length: [1, 3, 5][i % 3] }, (_, j) => `함정${i + 1}-${j + 1}`) },
+  }));
+  const mq = (g: string, k: number, card: string) => ({ id: `${g}-q${k}`, card, q: `${g} 질문 ${k}번`, o: ['가', '나', '다', '라'], a: k % 4, exp: `${g} 해설 ${k}번입니다` });
+  return {
+    ...base, theory,
+    // 카드 4장 → 묶음 하나(4장), 문제은행 20문항
+    mid: [{ id: 'm1', cards: theory.map((t) => t.id), bank: Array.from({ length: 20 }, (_, k) => mq('m1', k + 1, theory[k % cards].id)) }],
+  };
+}
+
+describe('새 형식 원본(뜻 5개 + 난이도, 중간점검) → 앱 표준 형태', () => {
+  const [u] = adaptUnits([rawUnitNew(2)], { areas: AREAS.map((a) => a.id) });
+  it('개념 맞추기: 난이도·뜻 5개·함정(쉬움 1 · 보통 3 · 어려움 5)', () => {
+    expect(u.cards.map((c) => [c.match?.level, c.match?.pairs.length, c.match?.distractors.length])).toEqual([['easy', 5, 1], ['mid', 5, 3], ['hard', 5, 5], ['easy', 5, 1]]);
+  });
+  it("중간점검: 단원을 붙인 ID('U2-m1', 'U2-m1-q3', 카드 'U2-t1'), 문항은 set 'mid'·영역 없음", () => {
+    expect(u.mids).toHaveLength(1);
+    const g = u.mids[0];
+    expect(g.id).toBe('U2-m1');
+    expect(g.cards).toEqual(['U2-t1', 'U2-t2', 'U2-t3', 'U2-t4']);
+    expect(g.bank).toHaveLength(20);
+    expect(g.bank[2]).toMatchObject({ id: 'U2-m1-q3', unitId: 'U2', set: 'mid', area: '', card: 'U2-t3', question: 'm1 질문 3번', answer: 3 });
+  });
+  it('중간점검 문항은 문항 찾기(오답노트)에만: 모의고사·실력점검·단계 문항 수에는 없다', () => {
+    const c = makeCourse({ id: 'net', name: '시험', basePath: '/t', units: [u], areas: AREAS, remote: { kind: 'course', course: 'net' } });
+    expect(c.mcqById('U2-m1-q7')?.set).toBe('mid');
+    expect(c.midGroups).toEqual({ U2: ['U2-m1'] });
+    expect([...u.basic, ...u.check].some((q) => q.set === 'mid')).toBe(false);
+  });
+  it('예전·새 형식이 섞인 과목도 읽는다(단원마다, 카드마다)', () => {
+    const mixed = adaptUnits([rawUnit(1), rawUnitNew(2)], { areas: AREAS.map((a) => a.id) });
+    expect(mixed.map((x) => [x.id, x.cards[0].match?.pairs.length, x.mids.length])).toEqual([['U1', 3, 0], ['U2', 5, 1]]);
   });
 });
 

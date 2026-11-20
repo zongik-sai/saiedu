@@ -52,6 +52,7 @@
       },
       "tip": "ROLLUP(A, B)에는 B만으로 묶은 소계가 없어요. '오른쪽부터 말아 올린다'로 기억해요.",
       "match": {
+        "level": "mid",
         "pairs": [
           {
             "term": "소계",
@@ -63,10 +64,22 @@
           },
           {
             "term": "ROLLUP",
-            "desc": "오른쪽 열부터 하나씩 빼며 묶음을 만드는 GROUP BY 확장"
+            "desc": "상세 묶음에서 오른쪽 열을 하나씩 빼며 중간·전체 합계를 만드는 GROUP BY 확장"
+          },
+          {
+            "term": "n+1",
+            "desc": "열 n개를 오른쪽부터 하나씩 빼며 묶을 때 생기는 묶음의 수"
+          },
+          {
+            "term": "NULL",
+            "desc": "중간·전체 합계 행에서 묶을 때 뺀 열의 칸에 표시되는 값"
           }
         ],
-        "distractor": "CUBE"
+        "distractors": [
+          "CUBE",
+          "GROUPING SETS",
+          "HAVING"
+        ]
       }
     },
     {
@@ -104,21 +117,36 @@
       },
       "tip": "CUBE는 열 순서를 바꿔도 같은 묶음이 나와요. 순서가 결과를 바꾸는 건 ROLLUP이에요.",
       "match": {
+        "level": "hard",
         "pairs": [
           {
             "term": "CUBE",
-            "desc": "가능한 모든 열 조합마다 중간 합계를 만드는 확장"
+            "desc": "가능한 모든 열 조합마다 묶음을 만들어 합계를 내는 확장"
           },
           {
             "term": "GROUPING SETS",
-            "desc": "필요한 묶음만 직접 골라 나열하는 확장"
+            "desc": "만들 묶음을 필요한 것만 직접 골라 나열하는 확장"
           },
           {
             "term": "()",
-            "desc": "아무 열로도 나누지 않은 빈 묶음, 곧 전체 합계"
+            "desc": "아무 열로도 나누지 않은 빈 묶음으로, 전체 합계를 뜻함"
+          },
+          {
+            "term": "2의 n제곱",
+            "desc": "열 n개로 가능한 모든 조합을 만들 때 생기는 묶음의 수"
+          },
+          {
+            "term": "ROLLUP",
+            "desc": "열 순서를 바꾸면 만들어지는 묶음도 달라지는 확장"
           }
         ],
-        "distractor": "ROLLUP"
+        "distractors": [
+          "n+1",
+          "GROUPING(열)",
+          "UNION ALL",
+          "HAVING",
+          "PIVOT"
+        ]
       }
     },
     {
@@ -160,10 +188,11 @@
       },
       "tip": "GROUPING이 1이면 소계용 NULL, 0이면 실제 값(원래 NULL 포함)이에요. IS NULL로는 둘을 구별 못 해요.",
       "match": {
+        "level": "mid",
         "pairs": [
           {
             "term": "GROUPING(열)",
-            "desc": "열이 소계 때문에 비었으면 1, 아니면 0을 돌려주는 함수"
+            "desc": "열이 소계·총계 때문에 비었으면 1, 아니면 0을 돌려주는 함수"
           },
           {
             "term": "CASE WHEN",
@@ -172,9 +201,21 @@
           {
             "term": "UNION ALL",
             "desc": "묶음별 GROUP BY 결과를 이어 붙여 SQLite에서 소계를 흉내 냄"
+          },
+          {
+            "term": "IS NULL",
+            "desc": "소계용 빈 칸과 원래 데이터의 빈 값을 구별하지 못하는 비교"
+          },
+          {
+            "term": "소계 행의 NULL",
+            "desc": "값이 없다는 뜻이 아니라 '이 열은 빼고 묶었음'을 알리는 표시"
           }
         ],
-        "distractor": "HAVING"
+        "distractors": [
+          "ROLLUP",
+          "HAVING",
+          "WHERE"
+        ]
       }
     },
     {
@@ -237,7 +278,12 @@
       },
       "tip": "한 표의 칸(parent_id)이 같은 표의 기본키(club_id)를 가리키면 셀프조인으로 부모를 찾아요.",
       "match": {
+        "level": "easy",
         "pairs": [
+          {
+            "term": "계층형 데이터",
+            "desc": "부모-자식으로 이어져 나무 모양을 이루는 데이터"
+          },
           {
             "term": "셀프조인",
             "desc": "같은 표에 별칭 두 개를 붙여 자기 자신과 조인하는 것"
@@ -249,9 +295,15 @@
           {
             "term": "루트",
             "desc": "부모가 없는 트리의 맨 위 행(예: 학생회)"
+          },
+          {
+            "term": "LEFT JOIN",
+            "desc": "짝이 없는 행도 버리지 않아 학생회 행까지 남겨 주는 조인"
           }
         ],
-        "distractor": "club_name"
+        "distractors": [
+          "INNER JOIN"
+        ]
       }
     },
     {
@@ -290,21 +342,36 @@
       },
       "tip": "START WITH로 고른 시작 행도 결과에 LEVEL 1로 포함돼요. 하위 행만 보려면 WHERE LEVEL > 1을 더해요.",
       "match": {
+        "level": "hard",
         "pairs": [
           {
             "term": "START WITH",
-            "desc": "트리를 시작할 행을 정하는 Oracle 절"
+            "desc": "트리를 따라가기 시작할 행을 정하는 Oracle 절"
+          },
+          {
+            "term": "CONNECT BY",
+            "desc": "부모 행과 자식 행을 어떤 조건으로 이을지 정하는 Oracle 절"
+          },
+          {
+            "term": "PRIOR",
+            "desc": "연결 조건에서 '방금 방문한 행'의 열 앞에 붙이는 말"
           },
           {
             "term": "LEVEL",
-            "desc": "시작 행이 1이고 아래로 갈수록 커지는 깊이 가상 열"
+            "desc": "시작 행을 1로 두고 트리에서 한 단계 내려갈 때마다 1씩 커지는 깊이 값"
           },
           {
             "term": "WITH RECURSIVE",
-            "desc": "자기 자신을 다시 불러 반복하는 SQLite의 계층 질의 대안"
+            "desc": "임시 결과가 자기 자신을 다시 불러 반복하는 SQLite의 대안"
           }
         ],
-        "distractor": "CONNECT BY"
+        "distractors": [
+          "ORDER SIBLINGS BY",
+          "ROWNUM",
+          "UNION ALL",
+          "parent_id",
+          "ROLLUP"
+        ]
       }
     },
     {
@@ -343,6 +410,7 @@
       },
       "tip": "PIVOT = 행→열 펼치기, UNPIVOT = 열→행 접기. 둘 다 SQLite에서는 실행되지 않아요.",
       "match": {
+        "level": "mid",
         "pairs": [
           {
             "term": "PIVOT",
@@ -355,9 +423,21 @@
           {
             "term": "조건부 집계",
             "desc": "CASE로 조건에 맞는 값만 골라 SUM하는 SQLite 대안"
+          },
+          {
+            "term": "FOR",
+            "desc": "Oracle 펼치기 문법에서, 값이 새 열 제목이 될 열 이름 앞에 쓰는 말"
+          },
+          {
+            "term": "UNION ALL",
+            "desc": "열마다 SELECT를 만들어 이어 붙이는, 열→행 접기의 SQLite 대안"
           }
         ],
-        "distractor": "ROLLUP"
+        "distractors": [
+          "ROLLUP",
+          "CUBE",
+          "WITH RECURSIVE"
+        ]
       }
     },
     {
@@ -405,21 +485,32 @@
       },
       "tip": "^와 $가 둘 다 있으면 문자열 전체가 맞아야 해요. 없으면 일부만 맞아도 참이에요.",
       "match": {
+        "level": "easy",
         "pairs": [
+          {
+            "term": "정규표현식",
+            "desc": "문자열의 모양을 기호로 적어 형식을 검사하는 패턴"
+          },
           {
             "term": "REGEXP_LIKE",
             "desc": "패턴에 맞는 행만 걸러 내는 Oracle 함수"
           },
           {
-            "term": "[0-9]",
-            "desc": "0부터 9까지 숫자 한 개와 맞는 기호"
+            "term": "^",
+            "desc": "문자열이 시작하는 위치를 뜻하는 기호"
           },
           {
             "term": "$",
             "desc": "문자열이 끝나는 위치를 뜻하는 기호"
+          },
+          {
+            "term": "[0-9]",
+            "desc": "0부터 9까지 숫자 한 개와 맞는 기호"
           }
         ],
-        "distractor": "^"
+        "distractors": [
+          "{n}"
+        ]
       }
     }
   ],
@@ -680,6 +771,484 @@
         ],
         "distractor": "ELSE 0"
       }
+    }
+  ],
+  "mid": [
+    {
+      "id": "U10-m1",
+      "cards": [
+        "U10-t1",
+        "U10-t2",
+        "U10-t3"
+      ],
+      "bank": [
+        {
+          "id": "U10-m1-q1",
+          "card": "U10-t1",
+          "q": "소계와 총계를 바르게 설명한 것은?",
+          "o": [
+            "소계는 그룹 안의 중간 합계, 총계는 모든 행의 전체 합계예요",
+            "소계는 모든 행의 전체 합계, 총계는 그룹 안의 중간 합계예요",
+            "소계는 그룹 안 행의 개수, 총계는 모든 행의 개수예요",
+            "소계는 그룹 안의 가장 큰 값, 총계는 전체에서 가장 큰 값이에요"
+          ],
+          "a": 0,
+          "exp": "소계는 학과별 합처럼 그룹 안에서 구한 중간 합계이고, 총계는 모든 행을 하나로 묶은 전체 합계예요. 둘을 거꾸로 기억하지 않도록 '소(작은)=그룹, 총(모두)=전체'로 떠올려요."
+        },
+        {
+          "id": "U10-m1-q2",
+          "card": "U10-t1",
+          "q": "GROUP BY ROLLUP(A, B, C)처럼 열 3개를 넣으면 묶음은 몇 가지가 만들어질까요?",
+          "o": [
+            "3가지",
+            "4가지",
+            "6가지",
+            "8가지"
+          ],
+          "a": 1,
+          "exp": "ROLLUP은 오른쪽 열부터 하나씩 빼며 (A, B, C), (A, B), (A), () 를 만들어요. 열이 n개면 n+1가지라 4가지예요. 8가지는 모든 조합을 만드는 CUBE의 개수(2의 3제곱)예요."
+        },
+        {
+          "id": "U10-m1-q3",
+          "card": "U10-t1",
+          "q": "camp_monthly에서 AI로봇은 3월 5명, 4월 9명이에요. GROUP BY ROLLUP(dept_name, month) 결과에서 AI로봇 학과 소계 행의 SUM(participants)는?",
+          "o": [
+            "9",
+            "5",
+            "14",
+            "38"
+          ],
+          "a": 2,
+          "exp": "학과 소계 행은 그 학과의 모든 월을 더해요. 5 + 9 = 14예요. 38은 모든 학과를 더한 전체 총계 행의 값이에요."
+        },
+        {
+          "id": "U10-m1-q4",
+          "card": "U10-t1",
+          "q": "GROUP BY ROLLUP(dept_name, month) 결과의 학과 소계 행에서 month 칸에는 무엇이 표시될까요?",
+          "o": [
+            "0",
+            "'3월'",
+            "'합계'",
+            "NULL"
+          ],
+          "a": 3,
+          "exp": "소계 행은 month를 빼고 학과로만 묶은 행이라, 묶을 때 뺀 month 칸이 NULL로 표시돼요. '합계' 같은 이름표는 CASE WHEN GROUPING(month) = 1 …로 직접 붙여야 나와요."
+        },
+        {
+          "id": "U10-m1-q5",
+          "card": "U10-t1",
+          "q": "GROUP BY ROLLUP(month, dept_name)처럼 열 순서를 바꾸면 소계는 어떤 기준으로 만들어질까요?",
+          "o": [
+            "월별 소계",
+            "학과별 소계",
+            "학과별 소계와 월별 소계 모두",
+            "소계 없이 총계만"
+          ],
+          "a": 0,
+          "exp": "ROLLUP은 오른쪽 열부터 빼므로 (month, dept_name), (month), () 묶음이 생겨요. 그래서 소계는 월별로 만들어져요. 학과별 소계는 ROLLUP(dept_name, month)일 때 생겨요."
+        },
+        {
+          "id": "U10-m1-q6",
+          "card": "U10-t2",
+          "q": "GROUP BY CUBE(dept_name, month)가 만드는 묶음을 모두 고르면?",
+          "o": [
+            "(학과, 월), (학과), ()",
+            "(학과, 월), (학과), (월), ()",
+            "(학과), (월)",
+            "(학과, 월), (월), ()"
+          ],
+          "a": 1,
+          "exp": "CUBE는 가능한 모든 열 조합을 만들어 열이 n개면 2의 n제곱 가지예요. 열 2개라 2의 2제곱 = 4가지예요. (학과, 월), (학과), ()만 만드는 것은 ROLLUP(dept_name, month)이에요."
+        },
+        {
+          "id": "U10-m1-q7",
+          "card": "U10-t2",
+          "q": "GROUP BY GROUPING SETS((dept_name), (month)) 결과에 들어 있는 행은?",
+          "o": [
+            "학과·월 상세 행과 학과별 소계 행",
+            "학과별 소계 행과 전체 총계 행",
+            "학과별 소계 행과 월별 소계 행",
+            "상세 행, 두 가지 소계 행, 총계 행 모두"
+          ],
+          "a": 2,
+          "exp": "GROUPING SETS는 나열한 묶음만 만들어요. (dept_name)은 학과별 소계, (month)는 월별 소계예요. ()를 넣지 않았으니 총계 행도, 상세 행도 없어요."
+        },
+        {
+          "id": "U10-m1-q8",
+          "card": "U10-t2",
+          "q": "GROUPING SETS 안에 쓰는 ()는 어떤 묶음일까요?",
+          "o": [
+            "값이 NULL인 행만 모은 묶음",
+            "맨 앞에 쓴 열로만 나눈 묶음",
+            "행이 하나도 없는 빈 결과",
+            "모든 행을 하나로 묶은 총계"
+          ],
+          "a": 3,
+          "exp": "()는 어떤 열로도 나누지 않으므로 모든 행이 한 묶음이 되어 총계가 돼요. NULL인 행만 모으는 뜻이 아니에요."
+        },
+        {
+          "id": "U10-m1-q9",
+          "card": "U10-t2",
+          "q": "학과×월 교차 분석을 위해 학과별 소계와 월별 소계, 총계, 상세 행을 모두 한 번에 보고 싶어요. 알맞은 것은?",
+          "o": [
+            "GROUP BY CUBE(dept_name, month)",
+            "GROUP BY ROLLUP(dept_name, month)",
+            "GROUP BY ROLLUP(month, dept_name)",
+            "GROUP BY dept_name, month"
+          ],
+          "a": 0,
+          "exp": "CUBE는 (학과, 월), (학과), (월), () 를 모두 만들어요. ROLLUP(dept_name, month)은 월별 소계가, ROLLUP(month, dept_name)은 학과별 소계가 빠져요."
+        },
+        {
+          "id": "U10-m1-q10",
+          "card": "U10-t2",
+          "q": "ROLLUP, CUBE, GROUPING SETS에 대한 설명으로 옳지 않은 것은?",
+          "o": [
+            "ROLLUP은 열 순서를 바꾸면 소계 기준이 달라진다",
+            "CUBE는 열 순서를 바꾸면 만들어지는 묶음도 달라진다",
+            "GROUPING SETS는 나열한 묶음만 만든다",
+            "GROUPING SETS 결과는 묶음별 GROUP BY를 UNION ALL한 것과 같다"
+          ],
+          "a": 1,
+          "exp": "CUBE는 모든 조합을 만들기 때문에 열 순서를 바꿔도 같은 묶음이 나와요. 순서에 따라 결과가 바뀌는 것은 ROLLUP이에요."
+        },
+        {
+          "id": "U10-m1-q11",
+          "card": "U10-t3",
+          "q": "GROUP BY ROLLUP(dept_name, month) 결과의 전체 총계 행에서 GROUPING(dept_name)의 값은?",
+          "o": [
+            "0",
+            "NULL",
+            "1",
+            "38"
+          ],
+          "a": 2,
+          "exp": "총계 행은 dept_name까지 빼고 묶은 행이라 그 칸의 NULL이 소계·총계 때문에 생겼어요. 그래서 GROUPING(dept_name)은 1이에요. 38은 SUM 값이에요."
+        },
+        {
+          "id": "U10-m1-q12",
+          "card": "U10-t3",
+          "q": "원래 데이터에 month가 NULL인 상세 행이 있다고 해요. ROLLUP 결과의 이 상세 행에서 GROUPING(month)의 값은?",
+          "o": [
+            "1",
+            "NULL",
+            "오류가 난다",
+            "0"
+          ],
+          "a": 3,
+          "exp": "GROUPING은 소계·총계 때문에 생긴 NULL일 때만 1이에요. 원래 데이터의 NULL은 실제 값이므로 0이에요. 그래서 GROUPING으로 두 NULL을 구별할 수 있어요."
+        },
+        {
+          "id": "U10-m1-q13",
+          "card": "U10-t3",
+          "q": "CASE WHEN GROUPING(dept_name) = 1 THEN '전체' ELSE dept_name END는 ROLLUP(dept_name, month) 결과에서 어떤 일을 할까요?",
+          "o": [
+            "총계 행의 학과 칸에 '전체'라는 이름표를 붙인다",
+            "원래 데이터의 NULL 행을 결과에서 지운다",
+            "모든 행의 학과 이름을 '전체'로 바꾼다",
+            "학과별 소계 행을 새로 하나 더 만든다"
+          ],
+          "a": 0,
+          "exp": "GROUPING(dept_name)이 1인 행은 학과까지 빼고 묶은 총계 행뿐이에요. 그 행의 학과 칸만 '전체'가 되고, 나머지 행은 ELSE로 원래 학과 이름이 그대로 나와요."
+        },
+        {
+          "id": "U10-m1-q14",
+          "card": "U10-t3",
+          "q": "SQLite에서 GROUP BY ROLLUP(dept_name, month)과 같은 결과를 만드는 방법은?",
+          "o": [
+            "GROUP BY ROLLUP을 그대로 실행한다",
+            "묶음별 GROUP BY를 UNION ALL로 잇는다",
+            "GROUPING 함수로 소계 행을 새로 만든다",
+            "HAVING으로 소계 행만 골라 남긴다"
+          ],
+          "a": 1,
+          "exp": "SQLite에는 ROLLUP·GROUPING이 없어 그대로 실행되지 않아요. (학과, 월), (학과), () 묶음을 각각 GROUP BY하고 UNION ALL로 이으면 같은 결과가 돼요."
+        },
+        {
+          "id": "U10-m1-q15",
+          "card": "U10-t3",
+          "q": "소계 행에 나타나는 NULL에 대한 설명으로 옳은 것은?",
+          "o": [
+            "원래 데이터에 그 열의 값이 없었다는 뜻이다",
+            "IS NULL로 원래 데이터의 NULL과 구별할 수 있다",
+            "묶을 때 뺀 열이라는 표시라 원래 NULL과 헷갈릴 수 있다",
+            "그 묶음의 SUM 결과가 0이라는 뜻이다"
+          ],
+          "a": 2,
+          "exp": "소계 행의 NULL은 값이 없다는 뜻이 아니라 묶을 때 뺀 열이라는 표시예요. IS NULL은 두 경우 모두 참이라 구별하지 못하고, GROUPING(열)을 써야 구별돼요."
+        }
+      ]
+    },
+    {
+      "id": "U10-m2",
+      "cards": [
+        "U10-t4",
+        "U10-t5",
+        "U10-t6",
+        "U10-t7"
+      ],
+      "bank": [
+        {
+          "id": "U10-m2-q1",
+          "card": "U10-t4",
+          "q": "계층형 데이터의 예로 가장 알맞은 것은?",
+          "o": [
+            "학생회 → 학술부 → SQL동아리로 이어진 조직도",
+            "학과별 3월·4월 참여 인원을 펼친 교차표",
+            "학생 이름과 학년을 한 줄씩 적은 명단",
+            "캠프 신청 상태(신청·확정·취소) 목록"
+          ],
+          "a": 0,
+          "exp": "계층형 데이터는 부모-자식으로 이어져 나무(트리) 모양을 이루는 데이터예요. 동아리 조직도가 대표 예이고, 교차표나 명단에는 부모-자식 연결이 없어요."
+        },
+        {
+          "id": "U10-m2-q2",
+          "card": "U10-t4",
+          "q": "clubs_tree에서 학술부는 club_id 2, SQL동아리는 club_id 4(parent_id 2)예요. SQL스터디B의 parent_id가 4라면 SQL스터디B의 부모 동아리는?",
+          "o": [
+            "학술부",
+            "SQL동아리",
+            "학생회",
+            "SQL스터디A"
+          ],
+          "a": 1,
+          "exp": "parent_id 칸에는 부모 동아리의 club_id를 적어요. SQL스터디B의 parent_id 4는 club_id가 4인 SQL동아리를 가리켜요. 학술부는 SQL동아리의 부모라 한 단계 더 위이고, SQL스터디A는 같은 부모를 둔 형제예요."
+        },
+        {
+          "id": "U10-m2-q3",
+          "card": "U10-t4",
+          "q": "셀프조인에서 c는 자식, p는 부모 역할 별칭이에요. 자식 행 옆에 부모 이름을 붙이는 ON 조건은?",
+          "o": [
+            "c.club_id = p.club_id",
+            "c.parent_id = p.parent_id",
+            "c.parent_id = p.club_id",
+            "c.club_id = p.parent_id"
+          ],
+          "a": 2,
+          "exp": "자식의 parent_id가 부모의 club_id와 같아야 부모-자식 짝이 돼요. c.club_id = p.parent_id로 쓰면 c가 부모, p가 자식 역할로 뒤바뀌어 자식 이름이 붙어요."
+        },
+        {
+          "id": "U10-m2-q4",
+          "card": "U10-t4",
+          "q": "clubs_tree에는 동아리 8개가 있고 학생회만 parent_id가 NULL이에요. clubs_tree c LEFT JOIN clubs_tree p ON c.parent_id = p.club_id의 결과는 몇 행일까요?",
+          "o": [
+            "7행",
+            "9행",
+            "16행",
+            "8행"
+          ],
+          "a": 3,
+          "exp": "LEFT JOIN은 왼쪽 c의 8행을 모두 남기고, 부모가 없는 학생회는 p 쪽 열을 NULL로 채워요. 그래서 8행이에요. INNER JOIN이면 학생회가 빠져 7행이에요."
+        },
+        {
+          "id": "U10-m2-q5",
+          "card": "U10-t4",
+          "q": "clubs_tree에서 트리의 맨 위 루트 행을 찾는 조건은?",
+          "o": [
+            "WHERE parent_id IS NULL",
+            "WHERE club_id IS NULL",
+            "WHERE parent_id = 1",
+            "WHERE parent_id = club_id"
+          ],
+          "a": 0,
+          "exp": "루트는 부모가 없는 행이라 parent_id가 NULL이에요. parent_id = 1은 학생회의 자식(학술부·체육부)을 찾는 조건이에요."
+        },
+        {
+          "id": "U10-m2-q6",
+          "card": "U10-t5",
+          "q": "Oracle 계층형 질의에서 START WITH가 정하는 것은?",
+          "o": [
+            "부모와 자식을 잇는 방향",
+            "트리를 따라가기 시작할 행",
+            "각 행의 깊이 번호",
+            "같은 부모를 둔 행의 정렬 순서"
+          ],
+          "a": 1,
+          "exp": "START WITH는 시작 행을 정해요. 잇는 방향은 CONNECT BY PRIOR가, 깊이 번호는 LEVEL이 맡아요."
+        },
+        {
+          "id": "U10-m2-q7",
+          "card": "U10-t5",
+          "q": "Oracle에서 SQL스터디A부터 위쪽 부모들로 거슬러 올라가려 해요. CONNECT BY 뒤에 쓸 조건은?",
+          "o": [
+            "PRIOR club_id = parent_id",
+            "PRIOR club_id = club_id",
+            "PRIOR parent_id = club_id",
+            "PRIOR parent_id = parent_id"
+          ],
+          "a": 2,
+          "exp": "PRIOR는 '방금 방문한 행'이에요. PRIOR parent_id = club_id는 방금 행의 부모 번호를 club_id로 가진 행, 곧 부모를 찾아 위로 올라가요. PRIOR club_id = parent_id는 자식을 찾아 아래로 내려가요."
+        },
+        {
+          "id": "U10-m2-q8",
+          "card": "U10-t5",
+          "q": "Oracle에서 START WITH club_id = 1(학생회) CONNECT BY PRIOR club_id = parent_id로 조회할 때 LEVEL이 2인 동아리를 모두 고르면?",
+          "o": [
+            "SQL동아리, 로봇동아리, 농구부",
+            "학생회",
+            "SQL스터디A, SQL스터디B",
+            "학술부, 체육부"
+          ],
+          "a": 3,
+          "exp": "시작 행인 학생회가 LEVEL 1이고, 그 바로 아래 자식인 학술부·체육부가 LEVEL 2예요. SQL동아리·로봇동아리·농구부는 LEVEL 3이에요."
+        },
+        {
+          "id": "U10-m2-q9",
+          "card": "U10-t5",
+          "q": "SQLite에서 Oracle의 CONNECT BY처럼 트리를 따라가는 방법은?",
+          "o": [
+            "WITH RECURSIVE로 자식 행을 반복해서 찾는다",
+            "START WITH 절을 WHERE 대신 쓴다",
+            "PIVOT으로 부모 동아리를 열로 펼친다",
+            "GROUP BY ROLLUP으로 부모별로 묶는다"
+          ],
+          "a": 0,
+          "exp": "SQLite에는 START WITH·CONNECT BY가 없어요. WITH RECURSIVE는 첫 SELECT로 시작 행을 넣고, 재귀 SELECT가 자식을 찾아 반복해서 같은 트리를 만들어요."
+        },
+        {
+          "id": "U10-m2-q10",
+          "card": "U10-t5",
+          "q": "계층형 질의의 LEVEL에 대한 설명으로 옳지 않은 것은?",
+          "o": [
+            "LEVEL은 트리 깊이를 알려 주는 가상 열이다",
+            "시작 행의 LEVEL은 0이다",
+            "자식으로 한 단계 내려갈 때마다 1씩 커진다",
+            "WHERE LEVEL > 1을 쓰면 시작 행을 빼고 볼 수 있다"
+          ],
+          "a": 1,
+          "exp": "LEVEL은 깊이를 알려 주는 가상 열로, 시작 행이 0이 아니라 1부터 시작해요. 그래서 시작 행을 빼고 하위 행만 보려면 WHERE LEVEL > 1을 더해요."
+        },
+        {
+          "id": "U10-m2-q11",
+          "card": "U10-t6",
+          "q": "교차표의 한 행 'AI로봇 | 3월 5 | 4월 9'를 UNPIVOT하면 어떤 모양이 될까요?",
+          "o": [
+            "(AI로봇, 5)와 (AI로봇, 9) 두 행",
+            "(AI로봇, 합계, 14) 한 행",
+            "(AI로봇, 3월, 5)와 (AI로봇, 4월, 9) 두 행",
+            "(AI로봇, 3월, 9)와 (AI로봇, 4월, 5) 두 행"
+          ],
+          "a": 2,
+          "exp": "UNPIVOT은 여러 열(3월, 4월)을 행으로 접어 (학과, 월, 인원) 세로 모양으로 쌓아요. 월 열 2개가 2행이 되고, 각 행에 어느 월인지와 그 월의 인원이 짝지어 들어가요. 14는 두 값을 더한 소계예요."
+        },
+        {
+          "id": "U10-m2-q12",
+          "card": "U10-t6",
+          "q": "PIVOT·UNPIVOT과 SQLite에 대한 설명으로 옳지 않은 것은?",
+          "o": [
+            "PIVOT은 행의 값을 열 제목으로 펼친다",
+            "SQLite에서는 조건부 집계로 PIVOT과 같은 표를 만든다",
+            "SQLite에서는 열마다 SELECT를 만들어 UNION ALL로 UNPIVOT을 대신한다",
+            "SQLite 기본 빌드에서도 PIVOT 절이 그대로 실행된다"
+          ],
+          "a": 3,
+          "exp": "SQLite에는 PIVOT·UNPIVOT 절이 없어 실행되지 않아요. 대신 SUM(CASE WHEN …) 조건부 집계로 펼치고, 열마다 SELECT를 UNION ALL로 이어 접어요."
+        },
+        {
+          "id": "U10-m2-q13",
+          "card": "U10-t6",
+          "q": "Oracle의 PIVOT (SUM(participants) FOR month IN ('3월', '4월'))에서 새 열 제목이 되는 것은?",
+          "o": [
+            "month 열의 값 '3월'과 '4월'",
+            "participants 열의 값",
+            "dept_name 열의 값",
+            "SUM이라는 함수 이름"
+          ],
+          "a": 0,
+          "exp": "FOR 뒤에 쓴 month 열의 값들이 새 열 제목이 돼요. participants는 SUM으로 더해서 각 칸을 채우는 값이에요."
+        },
+        {
+          "id": "U10-m2-q14",
+          "card": "U10-t6",
+          "q": "AI로봇은 3월 5명, 4월 9명이에요. SUM(CASE WHEN month = '4월' THEN participants END)로 피벗하면 AI로봇의 4월 칸 값은?",
+          "o": [
+            "5",
+            "9",
+            "14",
+            "NULL"
+          ],
+          "a": 1,
+          "exp": "CASE는 4월 행이면 인원을, 아니면 NULL을 내요. SUM은 NULL을 빼고 더하므로 4월 값 9만 남아요. 14는 두 달을 모두 더한 값이에요."
+        },
+        {
+          "id": "U10-m2-q15",
+          "card": "U10-t6",
+          "q": "조건부 집계에서 CASE 식에 ELSE 0을 붙일 때의 설명으로 옳은 것은?",
+          "o": [
+            "기록이 없는 칸이 여전히 NULL로 남는다",
+            "기록이 있는 칸까지 모두 0이 된다",
+            "기록이 없는 칸이 NULL 대신 0이 된다",
+            "SQLite에서는 ELSE 0을 쓰면 오류가 난다"
+          ],
+          "a": 2,
+          "exp": "ELSE 0이 있으면 조건에 안 맞는 행이 0을 내서, 기록이 아예 없는 칸도 SUM이 0이 돼요. '기록 없음'이 '0명'으로 바뀌어 보이니 주의해요. 기록이 있는 칸 값은 그대로예요."
+        },
+        {
+          "id": "U10-m2-q16",
+          "card": "U10-t7",
+          "q": "정규표현식으로 하기에 알맞은 일은?",
+          "o": [
+            "학과별 참여 인원의 소계와 총계 구하기",
+            "부모 동아리를 따라 하위 트리 만들기",
+            "월 값을 열 제목으로 펼쳐 교차표 만들기",
+            "전화번호가 010-0000-0000 형식인지 검사"
+          ],
+          "a": 3,
+          "exp": "정규표현식은 문자열의 모양을 기호로 적은 패턴이라 전화번호·이메일·날짜 형식 검사에 써요. 소계는 ROLLUP, 트리는 계층형 질의, 펼치기는 PIVOT의 일이에요."
+        },
+        {
+          "id": "U10-m2-q17",
+          "card": "U10-t7",
+          "q": "강좌 이름이 'SQL'로 시작하는지 검사하려 해요. 알맞은 패턴은?",
+          "o": [
+            "^SQL",
+            "SQL$",
+            "SQL",
+            "[SQL]"
+          ],
+          "a": 0,
+          "exp": "^는 문자열의 시작이라 '^SQL'은 SQL로 시작하는 값만 맞아요. 'SQL$'는 SQL로 끝나는 값, 'SQL'은 어디에든 SQL이 들어 있는 값과 맞아요. [SQL]은 S·Q·L 중 글자 하나예요."
+        },
+        {
+          "id": "U10-m2-q18",
+          "card": "U10-t7",
+          "q": "패턴 '^[0-9]{3}$'와 맞는 문자열은?",
+          "o": [
+            "12",
+            "123",
+            "1234",
+            "12a"
+          ],
+          "a": 1,
+          "exp": "[0-9]{3}은 숫자 3개이고, ^와 $가 함께 있으니 문자열 전체가 숫자 3개여야 해요. 1234는 숫자가 4개라 맞지 않아요. ^와 $가 없었다면 1234도 일부가 맞아 참이 돼요."
+        },
+        {
+          "id": "U10-m2-q19",
+          "card": "U10-t7",
+          "q": "아이디가 소문자로만 이루어졌는지 검사하려 해요(sql은 통과, sql1은 불통과). 알맞은 패턴은?",
+          "o": [
+            "[a-z]+",
+            "^[a-z]$",
+            "^[a-z]+$",
+            "^[0-9]+$"
+          ],
+          "a": 2,
+          "exp": "[a-z]+는 소문자 1개 이상이고, ^와 $가 있어야 문자열 전체를 검사해요. '[a-z]+'만 쓰면 sql1도 일부가 맞아 통과해요. '^[a-z]$'는 소문자 딱 한 글자만 맞아요."
+        },
+        {
+          "id": "U10-m2-q20",
+          "card": "U10-t7",
+          "q": "SQLite 기본 빌드에서 WHERE REGEXP_LIKE(phone, …)를 쓴 SQL을 실행하면 어떻게 될까요?",
+          "o": [
+            "LIKE처럼 패턴을 비교해 실행된다",
+            "모든 행에서 조건이 참이 된다",
+            "오류 없이 결과가 0행으로 나온다",
+            "함수가 없어 실행되지 않는다"
+          ],
+          "a": 3,
+          "exp": "SQLite 기본 빌드에는 REGEXP 함수가 없어 이 SQL은 실행되지 않아요. 그래서 이 단원의 정규식 활동은 브라우저 정규식 엔진으로 하는 시뮬레이션이에요."
+        }
+      ]
     }
   ]
 }
