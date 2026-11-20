@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * GitHub Pages 프로젝트 경로(/sql-forest/)의 운영 빌드 검증.
+ * GitHub Pages 프로젝트 경로(/saiedu/)의 운영 빌드 검증.
  * - 에셋·Worker·WASM이 하위 경로에서 로드되는지
  * - hash 직접 링크·새로고침
  * - 루트 OAuth callback(?code=, ?error=) 처리 후 query 제거와 안전한 복귀 경로
@@ -10,7 +10,7 @@ import { expect, test } from '@playwright/test';
 
 test('운영 빌드: 데모 버튼 없음, 로그인 설정 필요 안내', async ({ page }) => {
   const failed: string[] = [];
-  page.on('response', (r) => { if (r.status() >= 400 && r.url().includes('/sql-forest/')) failed.push(`${r.status()} ${r.url()}`); });
+  page.on('response', (r) => { if (r.status() >= 400 && r.url().includes('/saiedu/')) failed.push(`${r.status()} ${r.url()}`); });
   await page.goto('./');
   await expect(page.getByRole('heading', { name: '무엇을 공부할까요?' })).toBeVisible();
   await page.getByRole('link', { name: /데이터베이스/ }).click();
@@ -18,7 +18,7 @@ test('운영 빌드: 데모 버튼 없음, 로그인 설정 필요 안내', asyn
   await expect(page.getByRole('button', { name: '개발 데모로 시작' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Google 로그인 설정 필요' })).toBeVisible();
   await page.getByRole('link', { name: 'Google 로그인 설정 필요' }).click();
-  await expect(page).toHaveURL(/\/sql-forest\/#\/setup$/);
+  await expect(page).toHaveURL(/\/saiedu\/#\/setup$/);
   expect(failed).toEqual([]);
 });
 
@@ -30,8 +30,8 @@ test('하위 경로에서 Worker·WASM으로 실제 SQL 실행 (자유 실습장
   await page.getByLabel('SQL', { exact: true }).fill('SELECT COUNT(*) AS n FROM students;');
   await page.getByRole('button', { name: /실행/ }).click();
   await expect(page.getByRole('cell', { name: '6' })).toBeVisible();
-  expect(reqs.some((u) => /\/sql-forest\/assets\/sqlWorker-.*\.js$/.test(u))).toBe(true);
-  expect(reqs.some((u) => /\/sql-forest\/assets\/sql-wasm-.*\.wasm$/.test(u))).toBe(true);
+  expect(reqs.some((u) => /\/saiedu\/assets\/sqlWorker-.*\.js$/.test(u))).toBe(true);
+  expect(reqs.some((u) => /\/saiedu\/assets\/sql-wasm-.*\.wasm$/.test(u))).toBe(true);
   // 데이터 변경은 실습장 세션 안에서만, 초기화 가능
   await page.getByLabel('SQL', { exact: true }).fill("DELETE FROM enrollment;");
   await page.getByRole('button', { name: /실행/ }).click();
@@ -46,7 +46,7 @@ test('루트 callback: ?code= 처리 후 query 제거, 설정 없으면 안내(�
   await page.goto('./?code=fake-code-123');
   await expect(page.getByRole('alert')).toContainText('로그인을 마치지 못했어요');
   expect(page.url()).not.toContain('code=');
-  expect(new URL(page.url()).pathname).toBe('/sql-forest/');
+  expect(new URL(page.url()).pathname).toBe('/saiedu/');
   // 새로고침해도 다시 처리하지 않음(query가 이미 지워짐)
   await page.reload();
   await expect(page.getByRole('alert')).toHaveCount(0);
@@ -77,7 +77,7 @@ test('운영 빌드: 컴퓨터 일반 문제은행이 하위 경로에서 따로
 test('개인정보처리방침: 하위 경로의 정적 페이지로 열리고 첫 화면에서 연결된다', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('link', { name: '개인정보처리방침' }).click();
-  await expect(page).toHaveURL(/\/sql-forest\/privacy\.html$/);
+  await expect(page).toHaveURL(/\/saiedu\/privacy\.html$/);
   await expect(page.getByRole('heading', { name: '개인정보처리방침' })).toBeVisible();
   await page.getByRole('link', { name: '← 배움 숲으로' }).click();
   await expect(page.getByRole('heading', { name: '무엇을 공부할까요?' })).toBeVisible();
