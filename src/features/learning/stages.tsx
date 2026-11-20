@@ -164,7 +164,7 @@ function TheoryStage({ u }: { u: UnitId }) {
   const midKey = (gid: string) => `${prefix}db:mid:${u}:${gid}`;
   const [view, setView] = useState<ConceptView>(() => {
     // 풀던 중간점검이 있으면 그 묶음, 아니면 순서대로 처음 할 것
-    const g = S.mids.findIndex((x) => resumeMidRun(readJson<unknown>(midKey(x.id), null), x.id, x.bank) !== null);
+    const g = S.mids.findIndex((x) => midStatus(x, isDone, passed) !== 'locked' && resumeMidRun(readJson<unknown>(midKey(x.id), null), x.id, x.bank) !== null);
     return g >= 0 ? { kind: 'mid', gi: g } : nextConceptTodo(ids, S.mids, isDone, passed) ?? { kind: 'card', idx: 0 };
   });
   const [phase, setPhase] = useState<'read' | 'match'>('read');

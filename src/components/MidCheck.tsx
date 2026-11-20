@@ -34,7 +34,11 @@ interface Feedback { qid: string; picked: number; order: number[]; correct: bool
 
 export function MidCheck<Q extends MidItem>(p: MidCheckProps<Q>) {
   const total = Math.min(MID_DRAW, p.bank.length);
-  const saved = useMemo(() => resumeMidRun(readJson<unknown>(p.storageKey, null), p.groupId, p.bank), [p.storageKey, p.groupId, p.bank]);
+  // 잠긴 묶음(카드를 아직 다 안 마침, 예: 다른 기기에서 단원 초기화 뒤 남은 풀이)은 남은 풀이를 쓰지 않고 지운다
+  const saved = useMemo(() => (p.status === 'locked' ? null : resumeMidRun(readJson<unknown>(p.storageKey, null), p.groupId, p.bank)), [p.status, p.storageKey, p.groupId, p.bank]);
+  useEffect(() => {
+    if (p.status === 'locked') removeRaw(p.storageKey);
+  }, [p.status, p.storageKey]);
   // 풀 차례인 묶음은 바로 시작(새로 뽑거나 이어 풀기). 마친·연습 묶음은 안내 후 '연습으로 다시 풀기'(풀던 연습이 있으면 이어서)
   const [run, setRun] = useState<MidRun | null>(() => saved ?? (p.status === 'due' ? startMidRun(p.groupId, p.bank) : null));
   const [done, setDone] = useState<{ practice: boolean; missed: number } | null>(null);

@@ -27,6 +27,8 @@ export interface LegacyMatch { pairs: MatchPair[]; distractor: string }
 export type MatchInput = CardMatchData | LegacyMatch;
 
 const isStr = (x: unknown): x is string => typeof x === 'string' && x.trim().length > 0;
+/** 겹침 판단 키: 앞뒤 공백·연속 공백·유니코드 표기 차이를 무시(화면에서 똑같아 보이는 칩이 둘 생기지 않게) */
+const keyOf = (x: string) => x.normalize('NFC').trim().replace(/\s+/g, ' ');
 
 /**
  * 원본 개념 맞추기 → 표준 형태. 새 형식 { level, pairs, distractors } · 예전 형식 { pairs, distractor } 둘 다.
@@ -43,15 +45,15 @@ export function normalizeMatch(raw: unknown): CardMatchData | undefined {
   for (const p of r.pairs) {
     if (!p || typeof p !== 'object') continue;
     const { term, desc } = p as { term?: unknown; desc?: unknown };
-    if (!isStr(term) || !isStr(desc) || terms.has(term) || descs.has(desc)) continue;
-    terms.add(term);
-    descs.add(desc);
-    pairs.push({ term, desc });
+    if (!isStr(term) || !isStr(desc) || terms.has(keyOf(term)) || descs.has(keyOf(desc))) continue;
+    terms.add(keyOf(term));
+    descs.add(keyOf(desc));
+    pairs.push({ term: term.trim(), desc: desc.trim() });
   }
   if (!pairs.length) return undefined;
   const rawDis = Array.isArray(r.distractors) ? r.distractors : r.distractor !== undefined ? [r.distractor] : [];
   const distractors: string[] = [];
-  for (const d of rawDis) if (isStr(d) && !terms.has(d) && !distractors.includes(d)) distractors.push(d);
+  for (const d of rawDis) if (isStr(d) && !terms.has(keyOf(d)) && !distractors.some((x) => keyOf(x) === keyOf(d))) distractors.push(d.trim());
   const level = typeof r.level === 'string' && (MATCH_LEVELS as readonly string[]).includes(r.level) ? (r.level as MatchLevel) : undefined;
   return { ...(level ? { level } : {}), pairs, distractors };
 }

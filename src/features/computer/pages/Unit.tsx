@@ -200,9 +200,14 @@ function TheoryCards({ u }: { u: CgUnit }) {
   const midKey = (gid: string) => `${prefix}${course.storage}:run:${u.id}:mid:${gid}`;
   const [view, setView] = useState<ConceptView>(() => {
     // 풀던 중간점검이 있으면 그 묶음, 아니면 순서대로 처음 할 것(안 끝난 카드 → 풀 차례인 중간점검)
-    const g = u.mids.findIndex((x) => resumeMidRun(readJson<unknown>(midKey(x.id), null), x.id, x.bank) !== null);
+    const g = u.mids.findIndex((x) => midStatus(x, isDone, passed) !== 'locked' && resumeMidRun(readJson<unknown>(midKey(x.id), null), x.id, x.bank) !== null);
     return g >= 0 ? { kind: 'mid', gi: g } : nextConceptTodo(ids, u.mids, isDone, passed) ?? { kind: 'card', idx: 0 };
   });
+  // 두 기기에서 따로 마친 기록이 합쳐져 카드·중간점검이 모두 끝났는데 1단계 통과가 안 남은 경우: 지금 통과로 남긴다(데이터베이스의 reconcileStage1과 같은 역할)
+  const mergedAllDone = u.mids.length > 0 && ids.every((id) => itemDone(cg.state, id)) && midIds.every((id) => itemDone(cg.state, id));
+  useEffect(() => {
+    if (!passed && mergedAllDone) cg.commit((s) => markMid(s, u.id, midIds[midIds.length - 1], ids, midIds).state);
+  }, [passed, mergedAllDone, cg, u.id, ids, midIds]);
   const [phase, setPhase] = useState<'read' | 'match'>('read');
   const idx = view.kind === 'card' ? view.idx : -1;
   useLiveDetail(view.kind === 'card' ? `카드 ${idx + 1}/${u.cards.length}${phase === 'match' ? ' · 개념 맞추기' : ''}` : null);
@@ -338,7 +343,7 @@ function MidView({ u, gi, storageKey, passedBlock, nextButton }: { u: CgUnit; gi
       status={status}
       storageKey={storageKey}
       onAnswer={(q, correct) => cg.commit((s) => noteAnswer(s, q.id, correct))}
-      onComplete={() => { if (!isDone(g.id)) cg.commit((s) => markMid(s, u.id, g.id, ids, midIds).state); }}
+      onComplete={() => cg.commit((s) => markMid(s, u.id, g.id, ids, midIds).state)}
       after={after}
     />
   );

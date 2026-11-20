@@ -397,7 +397,7 @@ input[type='search'] { font: inherit; padding: 0.35rem 0.6rem; border: 1px solid
 
 /* 1단계: 카드 한 장 읽기 → 개념 맞추기 */
 .cg-card-nav { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
-.cg-card-dot { min-width: 2rem; height: 2rem; padding: 0 0.3rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+.cg-card-dot { min-width: 2.5rem; height: 2.5rem; padding: 0 0.3rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-variant-numeric: tabular-nums; font-size: 0.85rem; }
 .cg-card-dot.done { background: var(--moss-soft); border-color: var(--moss); color: var(--moss-strong); font-weight: 700; }
 .cg-card-dot.cur { outline: 2px solid var(--teal); outline-offset: 1px; }
 .cg-card-nav .small { margin-left: 0.4rem; }
@@ -441,7 +441,7 @@ li.bad .cg-slot.filled { border-color: var(--bad); background: var(--bad-soft); 
 }
 
 /* 중간점검(카드 3장마다) */
-.cg-mid-dot { min-height: 2rem; padding: 0 0.55rem; border: 1px dashed var(--soil); border-radius: 999px; background: var(--soil-soft); color: var(--soil); font-size: 0.8rem; font-weight: 700; }
+.cg-mid-dot { min-height: 2.5rem; padding: 0 0.55rem; border: 1px dashed var(--soil); border-radius: 999px; background: var(--soil-soft); color: var(--soil); font-size: 0.8rem; font-weight: 700; }
 .cg-mid-dot.locked { border-color: var(--line); background: var(--surface); color: var(--ink-soft); opacity: 0.7; }
 .cg-mid-dot.due { border-style: solid; background: var(--warn-soft); color: var(--warn); }
 .cg-mid-dot.done { border-style: solid; border-color: var(--moss); background: var(--moss-soft); color: var(--moss-strong); }
