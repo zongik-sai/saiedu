@@ -94,6 +94,15 @@ describe('course_progress: 본인 기록만, 과목마다 한 행', () => {
     const rows = await as(S2, (tx) => tx.query<{ course: string; revision: number }>(`select course, revision from public.course_progress where course in ('bin', 'ip') order by course`));
     expect(rows.rows).toEqual([{ course: 'bin', revision: 2 }, { course: 'ip', revision: 1 }]);
   });
+  it('자매 사이트 saicerti 과정(pyb·pya)도 과목마다 따로 저장(문제별 진도 JSON)', async () => {
+    const st = { v: 1, probs: { 'pyb-t01-a': { ver: 1, steps: ['s1', 's2'], stepsDone: true, solved: true, tries: 2, lastAt: '2026-11-23T00:00:00.000Z' } } };
+    expect(await save(S2, 'pyb', st, 0)).toEqual({ status: 'ok', revision: 1 });
+    expect(await save(S2, 'pya', { v: 1, probs: {} }, 0)).toEqual({ status: 'ok', revision: 1 });
+    expect(await save(S2, 'pyb', st, 0)).toMatchObject({ status: 'conflict', revision: 1, state: { probs: { 'pyb-t01-a': { solved: true } } } });
+    await expect(save(S2, 'PYB', st, 0)).rejects.toThrow(/알 수 없는 과목/);
+    await expect(save(S2, 'pyc', st, 0)).rejects.toThrow(/알 수 없는 과목/);
+    await as(S2, (tx) => tx.query(`delete from public.course_progress where course in ('pyb', 'pya')`));
+  });
   it('배열·너무 큰 기록은 거부', async () => {
     await expect(save(S2, 'net', [1, 2], 0)).rejects.toThrow(/check constraint/);
     await expect(save(S2, 'net', { big: 'x'.repeat(300000) }, 0)).rejects.toThrow(/check constraint/);

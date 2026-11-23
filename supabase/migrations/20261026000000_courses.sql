@@ -1,5 +1,7 @@
 -- =====================================================================
 -- 새 과목(네트워크·프로그래밍·Data·기초 다듬기) 학습 기록 + 선생님 반 학습 현황(2026-10-26, 2026-11-09 기초 다듬기 추가)
+-- 2026-11-23: 자매 사이트 saicerti(같은 Supabase 프로젝트)의 과정 pyb(프로그래밍 Python 기본)·pya(프로그래밍 Python 심화) 추가.
+--   saicerti 기록은 문제별 진도 JSON({v:1, probs:{...}})이고 학생 코드는 저장하지 않는다. 모양 검사는 앱(sanitize)이 한다.
 -- 과목 ID: net·prog·data, basic(기초 다듬기 10단원, 2026-11-09). 컴퓨터 일반(cg)은 cg_progress를 그대로 쓴다.
 -- bin·ip(예전 보충 학습 2진법 이해·IP 이해, 3단원)는 기초 다듬기로 합쳤다. 예전 행은 그대로 두고(앱이 처음 한 번 읽어
 -- 기초 다듬기로 옮긴다) 목록에서도 빼지 않는다(예전 행 저장·읽기가 계속 되게).
@@ -31,7 +33,7 @@ create table if not exists public.course_progress (
 -- 과목 목록: 이 파일을 다시 실행하면(과목이 늘어난 판) 기존 표의 제약도 새 목록으로 바뀐다
 alter table public.course_progress drop constraint if exists course_progress_course_check;
 alter table public.course_progress add constraint course_progress_course_check
-  check (course in ('net', 'prog', 'data', 'bin', 'ip', 'basic'));
+  check (course in ('net', 'prog', 'data', 'bin', 'ip', 'basic', 'pyb', 'pya'));
 
 create or replace function private.course_bump_revision() returns trigger
 language plpgsql set search_path = '' as $$
@@ -79,7 +81,7 @@ create or replace function public.save_course_progress(p_course text, p_state js
 returns jsonb language plpgsql security invoker set search_path = '' as $$
 declare v_uid uuid := private.require_uid(); r public.course_progress%rowtype;
 begin
-  if p_course is null or p_course not in ('net', 'prog', 'data', 'bin', 'ip', 'basic') then
+  if p_course is null or p_course not in ('net', 'prog', 'data', 'bin', 'ip', 'basic', 'pyb', 'pya') then
     raise exception '알 수 없는 과목입니다' using errcode = '22023';
   end if;
   select * into r from public.course_progress where user_id = v_uid and course = p_course for update;
@@ -111,7 +113,7 @@ begin
   if not private.is_teacher() then
     raise exception '선생님 계정만 볼 수 있어요' using errcode = '42501';
   end if;
-  if p_course is null or p_course not in ('net', 'prog', 'data', 'bin', 'ip', 'basic') then
+  if p_course is null or p_course not in ('net', 'prog', 'data', 'bin', 'ip', 'basic', 'pyb', 'pya') then
     raise exception '알 수 없는 과목입니다' using errcode = '22023';
   end if;
   return query
